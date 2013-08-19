@@ -11,6 +11,8 @@ OPENOCD_DIR=C:/Apps/openocd-0.7.0
 
 SRCS +=	${SRC_DIR}/main.c 
 SRCS +=	${SRC_DIR}/stm32f4xx_it.c 
+SRCS +=	${SRC_DIR}/uart_io.c
+SRCS +=	${SRC_DIR}/syscalls.c
 SRCS +=	${DISCOVERY_DIR}/system_stm32f4xx.c
 SRCS +=	${DISCOVERY_DIR}/startup_stm32f40xx.S
 SRCS +=	${DISCOVERY_DIR}/stm32f4_discovery.c
@@ -18,6 +20,7 @@ SRCS +=	${PERIPH_DIR}/src/stm32f4xx_rcc.c
 SRCS +=	${PERIPH_DIR}/src/stm32f4xx_exti.c
 SRCS +=	${PERIPH_DIR}/src/stm32f4xx_gpio.c
 SRCS +=	${PERIPH_DIR}/src/stm32f4xx_syscfg.c
+SRCS +=	${PERIPH_DIR}/src/stm32f4xx_usart.c
 SRCS +=	${PERIPH_DIR}/src/misc.c
 
 #DEFS = -DUSE_STDPERIPH_DRIVER -DSTM32F4XX -DMANGUSTA_DISCOVERY -DUSE_USB_OTG_FS -DHSE_VALUE=8000000
@@ -68,5 +71,5 @@ clean:
 openocd:
 	$(OPENOCD_DIR)/bin-x64/openocd-x64-0.7.0 -f interface/stlink-v2.cfg -f target/stm32f4x_stlink.cfg
 
-flash:
+flash: all
 	$(OPENOCD_DIR)/bin-x64/openocd-x64-0.7.0 -f board/stm32f4discovery.cfg -c "program $(BUILD_DIR)/$(PROJ_NAME).elf verify reset"

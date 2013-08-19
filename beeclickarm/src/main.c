@@ -1,35 +1,38 @@
 #include "main.h"
 #include <stm32f4_discovery.h>
-
-static __IO uint32_t uwTimingDelay;
-RCC_ClocksTypeDef    RCC_Clocks;
-
-GPIO_InitTypeDef  GPIO_InitStructure;
+#include <stdio.h>
+#include "uart_io.h"
 
 static void Delay(__IO uint32_t nTime);
 
-
 int main(void)
 {
-	/* SysTick end of count event each 10ms */
+	/* Set SysTick to fire each 10ms */
+	RCC_ClocksTypeDef RCC_Clocks;
 	RCC_GetClocksFreq(&RCC_Clocks);
 	SysTick_Config(RCC_Clocks.HCLK_Frequency / 100);
 
 
 	STM_EVAL_LEDInit(LED4);
+	uartIOInit();
+
+	int idx = 0;
 
 	while (1)
 	{
 		STM_EVAL_LEDOn(LED4);
+		printf("Hello %03d.\n", idx++);
 
-		Delay(20);
+		Delay(50);
 
 		STM_EVAL_LEDOff(LED4);
 
-		Delay(20);
+		Delay(50);
 	}
 }
 
+
+static __IO uint32_t uwTimingDelay;
 void Delay(__IO uint32_t nTime)
 { 
 	uwTimingDelay = nTime;
@@ -37,6 +40,7 @@ void Delay(__IO uint32_t nTime)
 	while(uwTimingDelay != 0);
 }
 
+/* This function is called from SysTick handler */
 void TimingDelay_Decrement(void)
 {
 	if (uwTimingDelay != 0x00)
@@ -44,6 +48,7 @@ void TimingDelay_Decrement(void)
 		uwTimingDelay--;
 	}
 }
+
 
 #ifdef  USE_FULL_ASSERT
 
