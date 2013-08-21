@@ -1,7 +1,6 @@
 #include "main.h"
-#include <stm32f4_discovery.h>
+#include "machine.h"
 #include <stdio.h>
-#include "uart_io.h"
 
 static void Delay(__IO uint32_t nTime);
 
@@ -12,29 +11,21 @@ int main(void)
 	RCC_GetClocksFreq(&RCC_Clocks);
 	SysTick_Config(RCC_Clocks.HCLK_Frequency / 100);
 
-
-	STM_EVAL_LEDInit(LED4);
-	uartIOInit();
-
-	int idx = 0;
+	initSM();
 
 	while (1)
 	{
-		STM_EVAL_LEDOn(LED4);
-		printf("Hello %03d.\n", idx++);
-
-		Delay(50);
-
-		STM_EVAL_LEDOff(LED4);
-
-		Delay(50);
+		tickSM();
+//		printf("Hello %03d.\n", idx++);
 	}
 }
+
 
 
 static __IO uint32_t uwTimingDelay;
 void Delay(__IO uint32_t nTime)
 { 
+
 	uwTimingDelay = nTime;
 
 	while(uwTimingDelay != 0);
@@ -47,6 +38,24 @@ void TimingDelay_Decrement(void)
 	{
 		uwTimingDelay--;
 	}
+}
+
+/* This is called from syscalls.c as the implementation of _write syscall */
+int syscallWriteHandler(char *ptr, int len) {
+	int DataIdx;
+
+	for (DataIdx = 0; DataIdx < len; DataIdx++)	{
+//		USART_SendData(USART2, (uint8_t)*ptr);
+		ITM_SendChar((uint8_t)*ptr); // Sends it to ST-Link SWO as well so that it can be observed in ST-Link Utility
+
+//		while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET) {}
+
+		ptr++;
+	}
+
+//	while (USART_GetFlagStatus(USART2, USART_FLAG_TC) == RESET) {}
+
+	return len;
 }
 
 

@@ -10,6 +10,7 @@ DISCOVERY_DIR=stm32f4discovery
 OPENOCD_DIR=C:/Apps/openocd-0.7.0
 
 SRCS +=	${SRC_DIR}/main.c 
+SRCS +=	${SRC_DIR}/machine.c 
 SRCS +=	${SRC_DIR}/stm32f4xx_it.c 
 SRCS +=	${SRC_DIR}/uart_io.c
 SRCS +=	${SRC_DIR}/syscalls.c

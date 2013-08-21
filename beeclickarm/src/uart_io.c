@@ -1,13 +1,14 @@
 #include "uart_io.h"
 #include "stm32f4xx.h"
 
-void uartIOInit() {
+void uart2Init() {
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
 
 	GPIO_PinAFConfig(GPIOA, GPIO_PinSource2, GPIO_AF_USART2); // PA2 - alternative function USART2_TX
+	GPIO_PinAFConfig(GPIOA, GPIO_PinSource3, GPIO_AF_USART2); // PA3 - alternative function USART2_RX
 
 	GPIO_InitTypeDef gpioInitStruct;
-	gpioInitStruct.GPIO_Pin = GPIO_Pin_2;
+	gpioInitStruct.GPIO_Pin = GPIO_Pin_2 | GPIO_Pin_3;
 	gpioInitStruct.GPIO_Mode = GPIO_Mode_AF;
 	gpioInitStruct.GPIO_Speed = GPIO_Speed_50MHz;
 	gpioInitStruct.GPIO_OType = GPIO_OType_PP;
@@ -23,7 +24,7 @@ void uartIOInit() {
 	usartInitStruct.USART_WordLength = USART_WordLength_8b;
 	usartInitStruct.USART_StopBits = USART_StopBits_1;
 	usartInitStruct.USART_Parity = USART_Parity_No;
-	usartInitStruct.USART_Mode = USART_Mode_Tx;
+	usartInitStruct.USART_Mode = USART_Mode_Tx | USART_Mode_Rx;
 	usartInitStruct.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
 
 	USART_Init(USART2, &usartInitStruct);
@@ -31,22 +32,31 @@ void uartIOInit() {
 	USART_Cmd(USART2, ENABLE);
 }
 
-int syscallWriteHandler(char *ptr, int len) {
-	int DataIdx;
-
-	for (DataIdx = 0; DataIdx < len; DataIdx++)	{
-		USART_SendData(USART2, (uint8_t)*ptr);
-		ITM_SendChar((uint8_t)*ptr); // Sends it to ST-Link SWO as well so that it can be observed in ST-Link Utility
-
-		while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET) {
-		}
-
-		ptr++;
-	}
-
-	while (USART_GetFlagStatus(USART2, USART_FLAG_TC) == RESET) {
-	}
-
-	return len;
+uint8_t uart2RecvChar() {
+	return (uint8_t)USART_ReceiveData(USART2);
 }
 
+void uart2SendChar(uint8_t ch) {
+	USART_SendData(USART2, ch);
+}
+
+int uart2CanSend() {
+	return USART_GetFlagStatus(USART2, USART_FLAG_TXE) == SET;
+}
+
+int uart2CanRecv() {
+	return USART_GetFlagStatus(USART2, USART_FLAG_RXNE) == SET;
+}
+
+int uart2SendComplete() {
+	return USART_GetFlagStatus(USART2, USART_FLAG_TC) == SET;
+}
+
+int uart2IsBreakOrError() {
+	return USART2->SR & (USART_FLAG_FE | USART_FLAG_ORE | USART_FLAG_PE);
+}
+
+void uart2ClearBreakOrError() {
+	volatile int32_t dummy = USART2->SR;
+	USART2->DR = 0;
+}
