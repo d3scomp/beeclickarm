@@ -32,8 +32,12 @@
 							<option id="org.eclipse.cdt.cross.arm.gnu.yagarto.windows.option.addtools.printsize.234987486" name="Print Size" superClass="org.eclipse.cdt.cross.arm.gnu.yagarto.windows.option.addtools.printsize"/>
 							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.GNU_ELF" id="org.eclipse.cdt.cross.arm.gnu.yagarto.windows.platform.base.847930740" isAbstract="false" name="Windows Platform" osList="win32" superClass="org.eclipse.cdt.cross.arm.gnu.yagarto.windows.platform.base"/>
 							<builder id="org.eclipse.cdt.cross.arm.gnu.yagarto.windows.builder.base.2130987755" managedBuildOn="false" name="ARM Yagarto Windows GNU Make builder.Default" superClass="org.eclipse.cdt.cross.arm.gnu.yagarto.windows.builder.base"/>
-							<tool id="org.eclipse.cdt.cross.arm.gnu.yagarto.windows.assembler.base.365635172" name="ARM Yagarto Windows GCC Assembler" superClass="org.eclipse.cdt.cross.arm.gnu.yagarto.windows.assembler.base"/>
-							<tool id="org.eclipse.cdt.cross.arm.gnu.yagarto.windows.c.compiler.base.1102013978" name="ARM Yagarto Windows GCC C Compiler" superClass="org.eclipse.cdt.cross.arm.gnu.yagarto.windows.c.compiler.base"/>
+							<tool id="org.eclipse.cdt.cross.arm.gnu.yagarto.windows.assembler.base.365635172" name="ARM Yagarto Windows GCC Assembler" superClass="org.eclipse.cdt.cross.arm.gnu.yagarto.windows.assembler.base">
+								<inputType id="org.eclipse.cdt.cross.arm.gnu.yagarto.windows.assembler.base.input.1220530184" superClass="org.eclipse.cdt.cross.arm.gnu.yagarto.windows.assembler.base.input"/>
+							</tool>
+							<tool id="org.eclipse.cdt.cross.arm.gnu.yagarto.windows.c.compiler.base.1102013978" name="ARM Yagarto Windows GCC C Compiler" superClass="org.eclipse.cdt.cross.arm.gnu.yagarto.windows.c.compiler.base">
+								<inputType id="org.eclipse.cdt.cross.arm.gnu.yagarto.windows.c.compiler.base.input.1128307348" superClass="org.eclipse.cdt.cross.arm.gnu.yagarto.windows.c.compiler.base.input"/>
+							</tool>
 							<tool id="org.eclipse.cdt.cross.arm.gnu.yagarto.windows.cpp.compiler.base.159553719" name="ARM Yagarto Windows GCC C++ Compiler" superClass="org.eclipse.cdt.cross.arm.gnu.yagarto.windows.cpp.compiler.base"/>
 							<tool id="org.eclipse.cdt.cross.arm.gnu.yagarto.windows.c.linker.base.1082524044" name="ARM Yagarto Windows GCC C Linker" superClass="org.eclipse.cdt.cross.arm.gnu.yagarto.windows.c.linker.base"/>
 							<tool id="org.eclipse.cdt.cross.arm.gnu.yagarto.windows.cpp.linker.base.1316416178" name="ARM Yagarto Windows GCC C++ Linker" superClass="org.eclipse.cdt.cross.arm.gnu.yagarto.windows.cpp.linker.base"/>
@@ -61,4 +65,16 @@
 		<project id="beeclickarm.null.1701639953" name="beeclickarm"/>
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
+	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets">
+		<buildTargets>
+			<target name="flash" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
+				<buildCommand>make</buildCommand>
+				<buildArguments/>
+				<buildTarget>flash</buildTarget>
+				<stopOnError>true</stopOnError>
+				<useDefaultCommand>true</useDefaultCommand>
+				<runAllBuilders>true</runAllBuilders>
+			</target>
+		</buildTargets>
+	</storageModule>
 </cproject>
