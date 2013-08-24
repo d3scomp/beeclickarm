@@ -2,83 +2,209 @@ package d3scomp.beeclickarmj;
 
 import java.nio.ByteBuffer;
 
-public abstract class TOHMsg {
+abstract class TOHMsg {
+	static final int MAX_MSG_SIZE = 1024;
+	
 	static final int typeSize = 1;
 	
 	Type type;
 	
-	public static enum Type {
-		Sync, SendPacket, SetChannel
+	static enum Type {
+		SYNC, RECV_PACKET, PACKET_SENT, CHANNEL_SET, ADDR_SET, INFO
 	}
 	
-	public static class Sync extends TOHMsg {
-		static final byte[] SYNC_PATTERN = {'H', 'e', 'l', 'l', 'o', ' ', 't', 'h', 'e', 'r', 'e', '!'};
-		byte pattern[] = SYNC_PATTERN;
+	protected static interface TOHMsgFactory {
+		TOHMsg newInstance();
+		int getExpectedSize(ByteBuffer buf);
+	}
+	
+	protected static TOHMsgFactory[] msgFactories = {
+		null, // SYNC is handled separately
+		new TOHMsgFactory() {
+			public TOHMsg newInstance() {
+				return new RecvPacket();
+			}
+			public int getExpectedSize(ByteBuffer buf) {
+				return RecvPacket.getExpectedSizeLowerBound(buf);
+			}
+		},
+		new TOHMsgFactory() {
+			public TOHMsg newInstance() {
+				return new PacketSent();
+			}
+			public int getExpectedSize(ByteBuffer buf) {
+				return PacketSent.getExpectedSizeLowerBound(buf);
+			}
+		},
+		new TOHMsgFactory() {
+			public TOHMsg newInstance() {
+				return new ChannelSet();
+			}
+			public int getExpectedSize(ByteBuffer buf) {
+				return ChannelSet.getExpectedSizeLowerBound(buf);
+			}
+		},
+		new TOHMsgFactory() {
+			public TOHMsg newInstance() {
+				return new AddrSet();
+			}
+			public int getExpectedSize(ByteBuffer buf) {
+				return AddrSet.getExpectedSizeLowerBound(buf);
+			}
+		},
+		new TOHMsgFactory() {
+			public TOHMsg newInstance() {
+				return new Info();
+			}
+			public int getExpectedSize(ByteBuffer buf) {
+				return Info.getExpectedSizeLowerBound(buf);
+			}
+		}		
+	};
+	
+	static class Sync extends TOHMsg {
+		static final byte[] SYNC_PATTERN = TODMsg.Sync.SYNC_PATTERN;
 		
-		public Sync() {
-			type = Type.Sync;
+		static final byte[] correctSyncBytes;
+		static {
+			correctSyncBytes = new byte[1 + SYNC_PATTERN.length];
+			correctSyncBytes[0] = (byte)Type.SYNC.ordinal();
+			System.arraycopy(SYNC_PATTERN, 0, correctSyncBytes, 1, SYNC_PATTERN.length);
+		}
+
+		Sync() {
+			type = Type.SYNC;
 		}
 		
-		protected void toBytes(ByteBuffer buf) {
-			super.toBytes(buf);
-			buf.put(pattern);
-		}
-		
-		public int getSize() {
-			return typeSize + SYNC_PATTERN.length;
+		protected void fromBytes(ByteBuffer buf) {
+			assert(false); // SYNC is handled separately
 		}
 	}
 
-	public static class SendPacket extends TOHMsg {
-		public static final int MAX_DATA_LENGTH = 128;
-		int seq;
+	static class RecvPacket extends TOHMsg {
+		static final int MAX_DATA_LENGTH = 128;
+		int rssi;
+		int lqi;
+		byte fcs;
 		byte data[];
 		
-		public SendPacket() {
-			type = Type.SendPacket;
+		RecvPacket() {
+			type = Type.RECV_PACKET;
 		}
 		
-		public void toBytes(ByteBuffer buf) {
-			assert(data.length <= MAX_DATA_LENGTH);
+		protected void fromBytes(ByteBuffer buf) {
+			super.fromBytes(buf);
 			
-			super.toBytes(buf);
-			buf.put((byte)data.length);
-			buf.put((byte)((seq >> 0 ) & 0xFF));
-			buf.put((byte)((seq >> 8 ) & 0xFF));
-			buf.put((byte)((seq >> 16 ) & 0xFF));
-			buf.put((byte)((seq >> 24 ) & 0xFF));
-			buf.put(data);
+			int length = buf.get() & 0xFF;
+			assert(length <= MAX_DATA_LENGTH);
+			
+			rssi = buf.get() & 0xFF;
+			lqi = buf.get() & 0xFF;
+			fcs = buf.get();
+			
+			data = new byte[length];
+			buf.get(data);
 		}
 		
-		public int getSize() {
-			return typeSize + 4 + data.length;
+		static int getExpectedSizeLowerBound(ByteBuffer buf) {
+			return typeSize + 4 + (buf.position() == 1 ? 0 : (buf.get(1) & 0xFF));
 		}
 	}
 
-	public static class SetChannel extends TOHMsg {
-		byte channel;
+	static class PacketSent extends TOHMsg {
+		int seq;
+		int status; // 0 - OK, 1 - error
 		
-		public SetChannel() {
-			type = Type.SetChannel;
+		PacketSent() {
+			type = Type.PACKET_SENT;
 		}
 		
-		public void toBytes(ByteBuffer buf) {
-			super.toBytes(buf);
-			buf.put(channel);
+		protected void fromBytes(ByteBuffer buf) {
+			super.fromBytes(buf);
+			seq = ((buf.get() & 0xFF) << 0) | ((buf.get() & 0xFF) << 8) | ((buf.get() & 0xFF) << 16) | ((buf.get() & 0xFF) << 24);
+			status = buf.get() & 0xFF;
 		}
 		
-		public int getSize() {
+		static int getExpectedSizeLowerBound(ByteBuffer buf) {
+			return typeSize + 4 + 1;
+		}
+	}
+
+	static class ChannelSet extends TOHMsg {
+		int channel;
+		
+		ChannelSet() {
+			type = Type.CHANNEL_SET;
+		}
+		
+		protected void fromBytes(ByteBuffer buf) {
+			super.fromBytes(buf);
+			channel = buf.get();
+		}
+		
+		static int getExpectedSizeLowerBound(ByteBuffer buf) {
 			return typeSize + 1;
 		}
 	}
 
-	public void write(ByteBuffer buf) {
-		toBytes(buf);
+	static class AddrSet extends TOHMsg {
+		int panId;
+		int sAddr;
+		
+		AddrSet() {
+			type = Type.ADDR_SET;
+		}
+		
+		protected void fromBytes(ByteBuffer buf) {
+			super.fromBytes(buf);
+			panId = ((buf.get() & 0xFF) << 0) | ((buf.get() & 0xFF) << 8);
+			sAddr = ((buf.get() & 0xFF) << 0) | ((buf.get() & 0xFF) << 8);
+		}
+		
+		static int getExpectedSizeLowerBound(ByteBuffer buf) {
+			return typeSize + 4;
+		}
+	}
+
+	static class Info extends TOHMsg {
+		static final int MAX_INFO_TEXT_LENGTH = 255;
+		String text;
+		
+		Info() {
+			type = Type.INFO;
+		}
+		
+		protected void fromBytes(ByteBuffer buf) {
+			super.fromBytes(buf);
+			
+			int length = buf.get() & 0xFF;
+			assert(length <= MAX_INFO_TEXT_LENGTH);
+			
+			byte[] data = new byte[length];
+			buf.get(data);
+			
+			text = new String(data);
+		}
+		
+		static int getExpectedSizeLowerBound(ByteBuffer buf) {
+			return typeSize + 1 + (buf.position() == 1 ? 0 : (buf.get(1) & 0xFF));
+		}
+	}
+
+	static TOHMsg read(ByteBuffer buf) {
+		TOHMsg msg = msgFactories[buf.get(0)].newInstance();
+		msg.fromBytes(buf);
+		
+		return msg;
 	}
 	
-	abstract public int getSize();
+	static int getExpectedSizeLowerBound(ByteBuffer buf) {
+		return msgFactories[buf.get(0)].getExpectedSize(buf);
+	}
 	
-	protected void toBytes(ByteBuffer buf) {
-		buf.put((byte)type.ordinal());
+	protected void fromBytes(ByteBuffer buf) {
+		byte msgType = buf.get();
+		
+		assert(msgType == type.ordinal());
 	}
 }

@@ -18,13 +18,13 @@
 #define TOHD_SYNC_PATTERN "Hello there!"
 #define TOHD_SYNC_PATTERN_LENGTH 12
 
-#define VOLUNATARY_SYNC_PERIOD 1000000 // Every nth period, we sent SYNC just by ourselves
 #define MAX_INFO_TEXT_LENGTH 255
 
 typedef enum {
 	TOD_SYNC,
 	TOD_SEND_PACKET,
 	TOD_SET_CHANNEL,
+	TOD_SET_ADDR,
 	TOD_TYPES_NUMBER
 } TODType;
 
@@ -45,18 +45,26 @@ typedef struct {
 	uint8_t channel;
 } TODSetChannel;
 
+typedef struct {
+	TODType type;
+	uint16_t panId;
+	uint16_t sAddr;
+} TODSetAddr;
+
 typedef union {
 	TODType type;
 	TODSync sync;
 	TODSendPacket sendPacket;
 	TODSetChannel setChannel;
+	TODSetAddr setAddr;
 } TOD;
 
 
 size_t todFixedLengths[TOD_TYPES_NUMBER] = {
 	sizeof(TODSync),
 	0,
-	sizeof(TODSetChannel)
+	sizeof(TODSetChannel),
+	sizeof(TODSetAddr)
 };
 
 static size_t todLengthHandlerFixed(TOD msg) {
@@ -76,7 +84,8 @@ typedef size_t(*TODLengthHandler)(TOD msg);
 TODLengthHandler todLengthHandlers[TOD_TYPES_NUMBER] = {
 		todLengthHandlerFixed,		// TOD_SYNC
 		todLengthHandlerSendPacket,	// TOD_SEND_PACKET
-		todLengthHandlerFixed		// TOD_SET_CHANNEL
+		todLengthHandlerFixed,		// TOD_SET_CHANNEL
+		todLengthHandlerFixed		// TOD_SET_ADDR
 };
 
 
@@ -86,6 +95,7 @@ typedef enum {
 	TOH_RECV_PACKET,
 	TOH_PACKET_SENT,
 	TOH_CHANNEL_SET,
+	TOH_ADDR_SET,
 	TOH_INFO,
 	TOH_TYPES_NUMBER
 } TOHType;
@@ -107,12 +117,19 @@ typedef struct {
 typedef struct {
 	TOHType type;
 	uint32_t seq;
+	uint8_t status; // 0 - OK, 1 - error
 } TOHPacketSent;
 
 typedef struct {
 	TOHType type;
 	uint8_t channel;
 } TOHChannelSet;
+
+typedef struct {
+	TOHType type;
+	uint16_t panId;
+	uint16_t sAddr;
+} TOHAddrSet;
 
 typedef struct {
 	TOHType type;
@@ -126,6 +143,7 @@ typedef union {
 	TOHRecvPacket recvPacket;
 	TOHPacketSent packetSent;
 	TOHChannelSet channelSet;
+	TOHAddrSet addrSet;
 	TOHInfo info;
 } TOH;
 
@@ -135,6 +153,7 @@ size_t tohFixedLengths[TOH_TYPES_NUMBER] = {
 	0,
 	sizeof(TOHPacketSent),
 	sizeof(TOHChannelSet),
+	sizeof(TOHAddrSet),
 	0
 };
 
@@ -161,6 +180,7 @@ TOHLengthHandler tohLengthHandlers[TOH_TYPES_NUMBER] = {
 		tohLengthHandlerRecvPacket,	// TOH_RECV_PACKET
 		tohLengthHandlerFixed,		// TOH_PACKET_SENT
 		tohLengthHandlerFixed,		// TOH_CHANNEL_SET
+		tohLengthHandlerFixed,		// TOH_ADDR_SET
 		tohLengthHandlerInfo		// TOH_INFO
 };
 
@@ -221,6 +241,10 @@ static void updateRXTXLed() {
 	}
 }
 
+int rxCount, txCount;
+
+uint8_t channelNo;
+uint16_t panId, sAddr;
 
 enum {
 	RX_SYNC,
@@ -258,6 +282,8 @@ static void handleRX() {
 				if (rxBufferPtr == sizeof(TODSync)) {
 					rxBufferPtr = 0;
 					rxState = RX_OPERATIONAL;
+
+					incTODQueueWritePtr();
 				}
 
 			} else {
@@ -316,7 +342,6 @@ static void handleTX() {
 }
 
 
-
 uint32_t todHandlerProgress; // 0 means no handler is currently in progress
 
 uint32_t lastInfoButtonState; // 0 - not pressed, 1 - pressed (action pending), 2 - pressed (action already performed), 3..max - waiting
@@ -332,7 +357,15 @@ static void handleInfoButton() {
 
 		msg->type = TOH_INFO;
 
-		snprintf(msg->info.text, MAX_INFO_TEXT_LENGTH, "\n=== Info ===\nrxState: %d\n", rxState);
+		snprintf(msg->info.text, MAX_INFO_TEXT_LENGTH,
+				"txCount: %d\n"
+				"rxCount: %d\n"
+				"rxState: %d\n"
+				"panId: %x\n"
+				"sAddr: %x\n"
+				"channelNo: %d",
+				txCount, rxCount, rxState, panId, sAddr, channelNo);
+
 		msg->info.length = strlen(msg->info.text);
 
 		incTOHQueueWritePtr();
@@ -353,34 +386,66 @@ static void handleInfoButton() {
 	}
 }
 
-uint32_t voluntarySyncCountdown = VOLUNATARY_SYNC_PERIOD - 1;
+
+static void handleRecv() {
+	// TODO
+
+	rxCount++;
+}
+
 TOHSync tohSyncMsg = {
 	.type = TOH_SYNC,
 	.pattern = TOHD_SYNC_PATTERN
 };
-static void handleVoluntarySync() {
-	if (voluntarySyncCountdown == 0) {
-		if (todHandlerProgress == 0) { // If we should already sync but there is a handler in progress, we simply wait by not decrementing the handleTODSyncCountdown
-			memcpy(&tohQueue[tohQueueWritePtr], &tohSyncMsg, sizeof(TOHSync));
-			incTOHQueueWritePtr();
-
-			voluntarySyncCountdown = VOLUNATARY_SYNC_PERIOD - 1;
-		}
-	} else {
-		voluntarySyncCountdown--;
-	}
-}
-
 
 static void handleTODSync() {
-	assert_param(0); // This is unimplemented method because sync is handler already in rx routine
+	memcpy(&tohQueue[tohQueueWritePtr], &tohSyncMsg, sizeof(TOHSync));
+
+	incTOHQueueWritePtr();
+	incTODQueueReadPtr();
 }
 
 static void handleTODSendPacket() {
+	TODSendPacket *inMsg = &todQueue[todQueueReadPtr].sendPacket;
+
+	// TODO
+
+	txCount++;
+
+	TOHPacketSent *outMsg = &tohQueue[tohQueueWritePtr].packetSent;
+	outMsg->type = TOH_PACKET_SENT;
+	outMsg->seq = inMsg->seq;
+
 	incTODQueueReadPtr();
 }
 
 static void handleTODSetChannel() {
+	TODSetChannel *inMsg = &todQueue[todQueueReadPtr].setChannel;
+
+	channelNo = inMsg->channel;
+
+	// TODO
+
+	TOHChannelSet *outMsg = &tohQueue[tohQueueWritePtr].channelSet;
+	outMsg->type = TOH_CHANNEL_SET;
+	outMsg->channel = channelNo;
+
+	incTODQueueReadPtr();
+}
+
+static void handleTODSetAddr() {
+	TODSetAddr *inMsg = &todQueue[todQueueReadPtr].setAddr;
+
+	panId = inMsg->panId;
+	sAddr = inMsg->sAddr;
+
+	// TODO
+
+	TOHAddrSet *outMsg = &tohQueue[tohQueueWritePtr].addrSet;
+	outMsg->type = TOH_ADDR_SET;
+	outMsg->panId = panId;
+	outMsg->sAddr = sAddr;
+
 	incTODQueueReadPtr();
 }
 
@@ -389,7 +454,8 @@ typedef void(*TODHandler)();
 TODHandler todHandlers[TOD_TYPES_NUMBER] = {
 	handleTODSync,
 	handleTODSendPacket,
-	handleTODSetChannel
+	handleTODSetChannel,
+	handleTODSetAddr
 };
 
 static void handleTOD() {
@@ -401,7 +467,8 @@ static void handleTOD() {
 		todHandlers[msgType]();
 	}
 
-	handleVoluntarySync();
+	handleRecv();
+
 	handleInfoButton();
 }
 

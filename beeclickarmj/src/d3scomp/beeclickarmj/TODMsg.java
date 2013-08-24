@@ -2,43 +2,42 @@ package d3scomp.beeclickarmj;
 
 import java.nio.ByteBuffer;
 
-public abstract class TODMsg {
+abstract class TODMsg {
 	static final int typeSize = 1;
 	
 	Type type;
 	
-	public static enum Type {
-		Sync, SendPacket, SetChannel
+	static enum Type {
+		SYNC, SEND_PACKET, SET_CHANNEL, SET_ADDR
 	}
 	
-	public static class Sync extends TODMsg {
+	static class Sync extends TODMsg {
 		static final byte[] SYNC_PATTERN = {'H', 'e', 'l', 'l', 'o', ' ', 't', 'h', 'e', 'r', 'e', '!'};
-		byte pattern[] = SYNC_PATTERN;
 		
-		public Sync() {
-			type = Type.Sync;
+		Sync() {
+			type = Type.SYNC;
 		}
 		
 		protected void toBytes(ByteBuffer buf) {
 			super.toBytes(buf);
-			buf.put(pattern);
+			buf.put(SYNC_PATTERN);
 		}
 		
-		public int getSize() {
+		int getSize() {
 			return typeSize + SYNC_PATTERN.length;
 		}
 	}
 
-	public static class SendPacket extends TODMsg {
-		public static final int MAX_DATA_LENGTH = 128;
+	static class SendPacket extends TODMsg {
+		static final int MAX_DATA_LENGTH = 128;
 		int seq;
 		byte data[];
 		
-		public SendPacket() {
-			type = Type.SendPacket;
+		SendPacket() {
+			type = Type.SEND_PACKET;
 		}
 		
-		public void toBytes(ByteBuffer buf) {
+		protected void toBytes(ByteBuffer buf) {
 			assert(data.length <= MAX_DATA_LENGTH);
 			
 			super.toBytes(buf);
@@ -50,33 +49,54 @@ public abstract class TODMsg {
 			buf.put(data);
 		}
 		
-		public int getSize() {
+		int getSize() {
 			return typeSize + 4 + data.length;
 		}
 	}
 
-	public static class SetChannel extends TODMsg {
-		byte channel;
+	static class SetChannel extends TODMsg {
+		int channel;
 		
-		public SetChannel() {
-			type = Type.SetChannel;
+		SetChannel() {
+			type = Type.SET_CHANNEL;
 		}
 		
-		public void toBytes(ByteBuffer buf) {
+		protected void toBytes(ByteBuffer buf) {
 			super.toBytes(buf);
-			buf.put(channel);
+			buf.put((byte)channel);
 		}
 		
-		public int getSize() {
+		int getSize() {
 			return typeSize + 1;
 		}
 	}
 
-	public void write(ByteBuffer buf) {
+	static class SetAddr extends TODMsg {
+		int panId;
+		int sAddr;
+		
+		SetAddr() {
+			type = Type.SET_ADDR;
+		}
+		
+		protected void toBytes(ByteBuffer buf) {
+			super.toBytes(buf);
+			buf.put((byte)((panId >> 0 ) & 0xFF));
+			buf.put((byte)((panId >> 8 ) & 0xFF));
+			buf.put((byte)((sAddr >> 0 ) & 0xFF));
+			buf.put((byte)((sAddr >> 8 ) & 0xFF));
+		}
+		
+		int getSize() {
+			return typeSize + 4;
+		}
+	}	
+	
+	void write(ByteBuffer buf) {
 		toBytes(buf);
 	}
 	
-	abstract public int getSize();
+	abstract int getSize();
 	
 	protected void toBytes(ByteBuffer buf) {
 		buf.put((byte)type.ordinal());

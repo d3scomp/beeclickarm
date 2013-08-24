@@ -1,23 +1,19 @@
 package d3scomp.beeclickarmj;
 
-import jssc.SerialPort;
-import jssc.SerialPortException;
-import jssc.SerialPortList;
+import java.io.IOException;
 
 public class Test {
 
-	public static void main(String[] args) throws SerialPortException {
-		String[] portNames = SerialPortList.getPortNames();
+	public static void main(String[] args) throws CommException, IOException {
+		Comm comm = new JSSCComm("COM11");
 		
-		for (String portName : portNames) {
-			System.out.format("%s\n", portName);
-		}
-
-		TXRX txrx = new TXRX("COM11");
+		comm.setAddr(0xBABA, 0x0102);
+		comm.setChannel(2);
 		
+		System.out.println("Started. Press ENTER to exit.");
+		System.in.read();
 		
-		
-		txrx.shutdown();
+		comm.shutdown();
 	}
 
 }
