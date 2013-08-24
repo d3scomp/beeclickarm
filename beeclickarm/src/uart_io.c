@@ -21,6 +21,7 @@ void uart2Init() {
 
 	USART_InitTypeDef usartInitStruct;
 	usartInitStruct.USART_BaudRate = 921600;
+//	usartInitStruct.USART_BaudRate = 2400;
 	usartInitStruct.USART_WordLength = USART_WordLength_8b;
 	usartInitStruct.USART_StopBits = USART_StopBits_1;
 	usartInitStruct.USART_Parity = USART_Parity_No;

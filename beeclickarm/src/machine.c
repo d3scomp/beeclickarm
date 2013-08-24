@@ -36,7 +36,7 @@ typedef struct {
 typedef struct {
 	TODType type;
 	uint8_t length;
-	uint32_t seq;
+	uint8_t seq[4];
 	uint8_t data[MAX_RF_PACKET_LENGTH];
 } TODSendPacket;
 
@@ -47,8 +47,8 @@ typedef struct {
 
 typedef struct {
 	TODType type;
-	uint16_t panId;
-	uint16_t sAddr;
+	uint8_t panId[2];
+	uint8_t sAddr[2];
 } TODSetAddr;
 
 typedef union {
@@ -67,19 +67,19 @@ size_t todFixedLengths[TOD_TYPES_NUMBER] = {
 	sizeof(TODSetAddr)
 };
 
-static size_t todLengthHandlerFixed(TOD msg) {
-	size_t length = todFixedLengths[msg.type];
+static size_t todLengthHandlerFixed(TOD *msg) {
+	size_t length = todFixedLengths[msg->type];
 
 	assert_param(length != 0);
 
 	return length;
 }
 
-static size_t todLengthHandlerSendPacket(TOD msg) {
-	return sizeof(TODType) + sizeof(uint8_t) + sizeof(uint32_t) + msg.sendPacket.length;
+static size_t todLengthHandlerSendPacket(TOD *msg) {
+	return sizeof(TODType) + sizeof(uint8_t) + sizeof(uint32_t) + msg->sendPacket.length;
 }
 
-typedef size_t(*TODLengthHandler)(TOD msg);
+typedef size_t(*TODLengthHandler)(TOD *msg);
 
 TODLengthHandler todLengthHandlers[TOD_TYPES_NUMBER] = {
 		todLengthHandlerFixed,		// TOD_SYNC
@@ -116,8 +116,8 @@ typedef struct {
 
 typedef struct {
 	TOHType type;
-	uint32_t seq;
 	uint8_t status; // 0 - OK, 1 - error
+	uint8_t seq[4];
 } TOHPacketSent;
 
 typedef struct {
@@ -127,8 +127,8 @@ typedef struct {
 
 typedef struct {
 	TOHType type;
-	uint16_t panId;
-	uint16_t sAddr;
+	uint8_t panId[2];
+	uint8_t sAddr[2];
 } TOHAddrSet;
 
 typedef struct {
@@ -157,23 +157,23 @@ size_t tohFixedLengths[TOH_TYPES_NUMBER] = {
 	0
 };
 
-static size_t tohLengthHandlerFixed(TOH msg) {
-	size_t length = tohFixedLengths[msg.type];
+static size_t tohLengthHandlerFixed(TOH *msg) {
+	size_t length = tohFixedLengths[msg->type];
 
 	assert_param(length != 0);
 
 	return length;
 }
 
-static size_t tohLengthHandlerRecvPacket(TOH msg) {
-	return sizeof(TOHType) + sizeof(uint8_t) * 4 + msg.recvPacket.length;
+static size_t tohLengthHandlerRecvPacket(TOH *msg) {
+	return sizeof(TOHType) + sizeof(uint8_t) * 4 + msg->recvPacket.length;
 }
 
-static size_t tohLengthHandlerInfo(TOH msg) {
-	return sizeof(TOHType) + sizeof(uint8_t) + msg.info.length;
+static size_t tohLengthHandlerInfo(TOH *msg) {
+	return sizeof(TOHType) + sizeof(uint8_t) + msg->info.length;
 }
 
-typedef size_t(*TOHLengthHandler)(TOH msg);
+typedef size_t(*TOHLengthHandler)(TOH *msg);
 
 TOHLengthHandler tohLengthHandlers[TOH_TYPES_NUMBER] = {
 		tohLengthHandlerFixed,		// TOH_SYNC
@@ -244,7 +244,7 @@ static void updateRXTXLed() {
 int rxCount, txCount;
 
 uint8_t channelNo;
-uint16_t panId, sAddr;
+uint8_t panId[2], sAddr[2];
 
 enum {
 	RX_SYNC,
@@ -300,7 +300,7 @@ static void handleRX() {
 				rxBufferPtr = 0;
 				rxState = RX_SYNC;
 
-			} else if (rxBufferPtr == todLengthHandlers[msgType](todQueue[todQueueWritePtr])) {
+			} else if (rxBufferPtr == todLengthHandlers[msgType](&todQueue[todQueueWritePtr])) {
 				// Note that we call above a handler while the message is still only partially received. That is essentially wrong, but we assume the handlers
 				// won't return size which is smaller than the preamble of the message containing the length of the the message data. Once we read the length, the
 				// handler returns a correct value. Essentially it means that messages have to store the data length at the beginning and the length should be unsigned.
@@ -328,7 +328,7 @@ static void handleTX() {
 		TOHType msgType = tohQueue[tohQueueReadPtr].type;
 		assert_param(msgType >=0 && msgType < TOH_TYPES_NUMBER);
 
-		if (txBufferPtr == tohLengthHandlers[msgType](tohQueue[tohQueueReadPtr])) {
+		if (txBufferPtr == tohLengthHandlers[msgType](&tohQueue[tohQueueReadPtr])) {
 			incTOHQueueReadPtr();
 			txBufferPtr = 0;
 		}
@@ -361,10 +361,10 @@ static void handleInfoButton() {
 				"txCount: %d\n"
 				"rxCount: %d\n"
 				"rxState: %d\n"
-				"panId: %x\n"
-				"sAddr: %x\n"
+				"panId: %02x%02x\n"
+				"sAddr: %02x%02x\n"
 				"channelNo: %d",
-				txCount, rxCount, rxState, panId, sAddr, channelNo);
+				txCount, rxCount, rxState, panId[1], panId[0], sAddr[1], sAddr[0], channelNo);
 
 		msg->info.length = strlen(msg->info.text);
 
@@ -414,8 +414,12 @@ static void handleTODSendPacket() {
 
 	TOHPacketSent *outMsg = &tohQueue[tohQueueWritePtr].packetSent;
 	outMsg->type = TOH_PACKET_SENT;
-	outMsg->seq = inMsg->seq;
+	outMsg->seq[0] = inMsg->seq[0];
+	outMsg->seq[1] = inMsg->seq[1];
+	outMsg->seq[2] = inMsg->seq[2];
+	outMsg->seq[3] = inMsg->seq[3];
 
+	incTOHQueueWritePtr();
 	incTODQueueReadPtr();
 }
 
@@ -430,22 +434,28 @@ static void handleTODSetChannel() {
 	outMsg->type = TOH_CHANNEL_SET;
 	outMsg->channel = channelNo;
 
+	incTOHQueueWritePtr();
 	incTODQueueReadPtr();
 }
 
 static void handleTODSetAddr() {
 	TODSetAddr *inMsg = &todQueue[todQueueReadPtr].setAddr;
 
-	panId = inMsg->panId;
-	sAddr = inMsg->sAddr;
+	panId[0] = inMsg->panId[0];
+	panId[1] = inMsg->panId[1];
+	sAddr[0] = inMsg->sAddr[0];
+	sAddr[1] = inMsg->sAddr[1];
 
 	// TODO
 
 	TOHAddrSet *outMsg = &tohQueue[tohQueueWritePtr].addrSet;
 	outMsg->type = TOH_ADDR_SET;
-	outMsg->panId = panId;
-	outMsg->sAddr = sAddr;
+	outMsg->panId[0] = panId[0];
+	outMsg->panId[1] = panId[1];
+	outMsg->sAddr[0] = sAddr[0];
+	outMsg->sAddr[1] = sAddr[1];
 
+	incTOHQueueWritePtr();
 	incTODQueueReadPtr();
 }
 

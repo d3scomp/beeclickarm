@@ -62,8 +62,8 @@ init:
 
 $(BUILD_DIR)/$(PROJ_NAME).elf: $(OBJS)
 	arm-none-eabi-gcc $(LDFLAGS) -o "$@" $(OBJS)
-	arm-none-eabi-objcopy -O ihex "$@" $(build_dir)/$(PROJ_NAME).hex 
-	arm-none-eabi-objcopy -h -S "$<" > $(build_dir)/$(PROJ_NAME).lst 
+	arm-none-eabi-objcopy -O ihex "$@" $(BUILD_DIR)/$(PROJ_NAME).hex 
+	arm-none-eabi-objcopy -h -S "$<" > $(BUILD_DIR)/$(PROJ_NAME).lst 
 	arm-none-eabi-size --format=berkeley "$@"
 
 clean:

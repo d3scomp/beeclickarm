@@ -27,6 +27,7 @@ public class JSSCComm implements Comm {
 			
 			port.openPort();
 			port.setParams(921600, 8, 1, 0, false, false);
+//			port.setParams(2400, 8, 1, 0, false, false);
 			
 			try {
 				todQueue.put(new TODMsg.Sync());
@@ -60,11 +61,11 @@ public class JSSCComm implements Comm {
 	 */
 	@Override
 	public void shutdown() {
-		isOperational = false;
-		
 		txThread.interrupt();
 		rxThread.interrupt();
 
+		isOperational = false;
+		
 		try {
 			txThread.join();
 			rxThread.join();
@@ -81,7 +82,7 @@ public class JSSCComm implements Comm {
 	
 	private void txRun() {	
 		try {
-			while (!txThread.isInterrupted()) {
+			while (true) {
 				TODMsg msg;
 				msg = todQueue.take();
 				ByteBuffer txBuf = ByteBuffer.allocate(msg.getSize());
@@ -102,11 +103,23 @@ public class JSSCComm implements Comm {
 	
 	private ByteBuffer rxBuf = ByteBuffer.allocate(TOHMsg.MAX_MSG_SIZE);
 	
+	private byte[] readBytesInterruptible(int size) throws InterruptedException, SerialPortException {
+		int bytesAvailable;
+		while ((bytesAvailable = port.getInputBufferBytesCount()) < size && !rxThread.isInterrupted()) {
+			Thread.sleep(1);
+		}
+		
+		if (rxThread.isInterrupted()) {
+			throw new InterruptedException();
+		} else {
+			return port.readBytes(size);
+		}
+	}
 	private void rxRun() {
 		try {
 			System.out.println("Waiting for SYNC.");
 
-			rxBuf.put(port.readBytes(1)[0]);
+			rxBuf.put(readBytesInterruptible(1)[0]);
 
 			int pos;
 			while ((pos = rxBuf.position()) != TOHMsg.Sync.correctSyncBytes.length) {
@@ -114,20 +127,20 @@ public class JSSCComm implements Comm {
 					rxBuf.clear();
 				}
 				
-				rxBuf.put(port.readBytes(1)[0]);
+				rxBuf.put(readBytesInterruptible(1)[0]);
 			}
 			
 			System.out.println("SYNC succesful.");
 			
-			while (!rxThread.isInterrupted()) {
+			while (true) {
 				rxBuf.clear();
 
-				byte msgType = port.readBytes(1)[0];
+				byte msgType = readBytesInterruptible(1)[0];
 				rxBuf.put(msgType);
 				
 				int bytesStilExpected;					
 				while ((bytesStilExpected = TOHMsg.getExpectedSizeLowerBound(rxBuf) - rxBuf.position()) > 0) {
-					rxBuf.put(port.readBytes(bytesStilExpected));
+					rxBuf.put(readBytesInterruptible(bytesStilExpected));
 				}
 					
 				rxBuf.flip();
@@ -138,6 +151,7 @@ public class JSSCComm implements Comm {
 			e.printStackTrace();
 			System.out.println("Serial communication exception occured. Shutting down the communication stack.");
 			shutdown();
+		} catch (InterruptedException e) {
 		}
 	}
 	
