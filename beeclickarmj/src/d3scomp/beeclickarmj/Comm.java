@@ -12,4 +12,6 @@ public interface Comm {
 
 	public RXPacket receivePacket() throws CommException;
 
+	public abstract void start() throws CommException;
+
 }

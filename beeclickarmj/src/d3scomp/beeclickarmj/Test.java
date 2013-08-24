@@ -7,6 +7,8 @@ public class Test {
 	public static void main(String[] args) throws CommException, IOException {
 		Comm comm = new JSSCComm("COM11");
 		
+		comm.start();
+		
 		comm.setAddr(0xBABA, 0x0102);
 		comm.setChannel(2);
 		
