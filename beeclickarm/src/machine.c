@@ -1,14 +1,9 @@
 #include "machine.h"
-#include <stm32f4_discovery.h>
 #include <string.h>
 #include <stdio.h>
 #include "uart_io.h"
 
-
-#define LED_RXTX LED4
-#define LED_OUT_OF_SYNC LED5
-#define LED_RF_RECV LED3
-#define LED_RF_SEND LED6
+int mainCycles = 0;
 
 
 #define MAX_TOD_QUEUE_LENGTH 8
@@ -201,6 +196,12 @@ static void incTODQueueReadPtr() {
 	if (todQueueReadPtr == MAX_TOH_QUEUE_LENGTH) {
 		todQueueReadPtr = 0;
 	}
+
+	if (todQueueReadPtr == todQueueWritePtr) {
+		// Clear SW interrupt; 	// Note that this is not a race-condition because all defined interrupt handlers
+								// run in the same priority group, thus they don't preempt one another
+		EXTI_ClearITPendingBit(TOD_INTERRUPT_LINE);
+	}
 }
 
 static void incTODQueueWritePtr() {
@@ -210,6 +211,8 @@ static void incTODQueueWritePtr() {
 	}
 
 	assert_param(todQueueReadPtr != todQueueWritePtr);
+
+	EXTI_GenerateSWInterrupt(TOD_INTERRUPT_LINE);
 }
 
 static void incTOHQueueReadPtr() {
@@ -218,6 +221,11 @@ static void incTOHQueueReadPtr() {
 	tohQueueReadPtr++;
 	if (tohQueueReadPtr == MAX_TOH_QUEUE_LENGTH) {
 		tohQueueReadPtr = 0;
+	}
+
+	if (tohQueueReadPtr == tohQueueWritePtr) {
+		uart2TXIntDisable(); 	// Note that this is not a race-condition because all defined interrupt handlers
+								// run in the same priority group, thus they don't preempt one another
 	}
 }
 
@@ -228,8 +236,9 @@ static void incTOHQueueWritePtr() {
 	}
 
 	assert_param(tohQueueReadPtr != tohQueueWritePtr);
-}
 
+	uart2TXIntEnable();
+}
 
 uint32_t rxIdleCount, txIdleCount;
 
@@ -329,8 +338,8 @@ static void handleTX() {
 		assert_param(msgType >=0 && msgType < TOH_TYPES_NUMBER);
 
 		if (txBufferPtr == tohLengthHandlers[msgType](&tohQueue[tohQueueReadPtr])) {
-			incTOHQueueReadPtr();
 			txBufferPtr = 0;
+			incTOHQueueReadPtr();
 		}
 
 		txIdleCount = 0;
@@ -341,57 +350,6 @@ static void handleTX() {
 	updateRXTXLed();
 }
 
-
-uint32_t todHandlerProgress; // 0 means no handler is currently in progress
-
-uint32_t lastInfoButtonState; // 0 - not pressed, 1 - pressed (action pending), 2 - pressed (action already performed), 3..max - waiting
-static void handleInfoButton() {
-	uint32_t infoButtonState = STM_EVAL_PBGetState(BUTTON_USER);
-
-	if (infoButtonState == 1 && lastInfoButtonState == 0) {
-		lastInfoButtonState = 1;
-	}
-
-	if (lastInfoButtonState == 1 && todHandlerProgress == 0) {
-		TOH *msg = &tohQueue[tohQueueWritePtr];
-
-		msg->type = TOH_INFO;
-
-		snprintf(msg->info.text, MAX_INFO_TEXT_LENGTH,
-				"txCount: %d\n"
-				"rxCount: %d\n"
-				"rxState: %d\n"
-				"panId: %02x%02x\n"
-				"sAddr: %02x%02x\n"
-				"channelNo: %d",
-				txCount, rxCount, rxState, panId[1], panId[0], sAddr[1], sAddr[0], channelNo);
-
-		msg->info.length = strlen(msg->info.text);
-
-		incTOHQueueWritePtr();
-
-		lastInfoButtonState = 2;
-	}
-
-	if (infoButtonState == 0 && lastInfoButtonState == 2) {
-		lastInfoButtonState = 3;
-	}
-
-	if (lastInfoButtonState >= 3) {
-		if (lastInfoButtonState == 1000) {
-			lastInfoButtonState = 0;
-		} else {
-			lastInfoButtonState++;
-		}
-	}
-}
-
-
-static void handleRecv() {
-	// TODO
-
-	rxCount++;
-}
 
 TOHSync tohSyncMsg = {
 	.type = TOH_SYNC,
@@ -468,7 +426,7 @@ TODHandler todHandlers[TOD_TYPES_NUMBER] = {
 	handleTODSetAddr
 };
 
-static void handleTOD() {
+void handleTODInterrupt() {
 	if (todQueueReadPtr != todQueueWritePtr) {
 		TODType msgType = todQueue[todQueueReadPtr].type;
 
@@ -476,26 +434,36 @@ static void handleTOD() {
 
 		todHandlers[msgType]();
 	}
+}
 
-	handleRecv();
+void handleInfoButtonInterrupt() {
+	TOH *msg = &tohQueue[tohQueueWritePtr];
 
-	handleInfoButton();
+	msg->type = TOH_INFO;
+
+	snprintf(msg->info.text, MAX_INFO_TEXT_LENGTH,
+			"txCount: %d\n"
+			"rxCount: %d\n"
+			"rxState: %d\n"
+			"panId: %02x%02x\n"
+			"sAddr: %02x%02x\n"
+			"channelNo: %d\n"
+			"mainCycles: %d",
+			txCount, rxCount, rxState, panId[1], panId[0], sAddr[1], sAddr[0], channelNo, mainCycles);
+
+	msg->info.length = strlen(msg->info.text);
+
+	incTOHQueueWritePtr();
 }
 
 
-void initSM() {
-	STM_EVAL_LEDInit(LED_RXTX);
-	STM_EVAL_LEDInit(LED_OUT_OF_SYNC);
-	STM_EVAL_LEDInit(LED_RF_RECV);
-	STM_EVAL_LEDInit(LED_RF_SEND);
+void handleRFRecvInterrupt() {
+	// TODO
 
-	STM_EVAL_PBInit(BUTTON_USER, BUTTON_MODE_GPIO);
-	uart2Init();
+	rxCount++;
 }
 
-void tickSM() {
+void handleTXRXInterrupt() {
 	handleRX();
-	handleTOD();
 	handleTX();
 }
-

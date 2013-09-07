@@ -12,5 +12,7 @@ int uart2SendComplete();
 int uart2IsBreakOrError();
 void uart2ClearBreakOrError();
 
+void uart2TXIntEnable();
+void uart2TXIntDisable();
 
 #endif /* UART_IO_H_ */

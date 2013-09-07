@@ -1,63 +1,93 @@
 #include "main.h"
 #include "machine.h"
+#include "uart_io.h"
 #include <stdio.h>
 
-static void Delay(__IO uint32_t nTime);
+static void infoButtonInit();
+static void todHandlerInterruptInit();
 
 int main(void)
 {
+	NVIC_SetPriorityGrouping(NVIC_PriorityGroup_2);	// 2 bits for pre-emption priority, 2 bits for subpriority
+													// this effectively disables interrupt preemption of our interrupt handlers
+
 	/* Set SysTick to fire each 10ms */
 	RCC_ClocksTypeDef RCC_Clocks;
 	RCC_GetClocksFreq(&RCC_Clocks);
 	SysTick_Config(RCC_Clocks.HCLK_Frequency / 100);
 
-	initSM();
+	STM_EVAL_LEDInit(LED_RXTX);
+	STM_EVAL_LEDInit(LED_OUT_OF_SYNC);
+	STM_EVAL_LEDInit(LED_RF_RECV);
+	STM_EVAL_LEDInit(LED_RF_SEND);
 
-	while (1)
-	{
-		tickSM();
-//		printf("Hello %03d.\n", idx++);
+	infoButtonInit();
+	todHandlerInterruptInit();
+
+	uart2Init();
+
+	NVIC_SystemLPConfig(NVIC_LP_SLEEPONEXIT, ENABLE);
+
+	while (1) {
+		__WFI();
+		mainCycles++; // This is to measure how many times we wake up from WFI. In fact, we should never wake up.
 	}
 }
 
+static void infoButtonInit() {
+	GPIO_InitTypeDef GPIO_InitStructure;
+	EXTI_InitTypeDef EXTI_InitStructure;
+	NVIC_InitTypeDef NVIC_InitStructure;
 
+	/* Enable the BUTTON Clock */
+	RCC_AHB1PeriphClockCmd(USER_BUTTON_GPIO_CLK, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
 
-static __IO uint32_t uwTimingDelay;
-void Delay(__IO uint32_t nTime)
-{ 
+	/* Configure Button pin as input */
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	GPIO_InitStructure.GPIO_Pin = USER_BUTTON_PIN;
+	GPIO_Init(USER_BUTTON_GPIO_PORT, &GPIO_InitStructure);
 
-	uwTimingDelay = nTime;
+	/* Connect Button EXTI Line to Button GPIO Pin */
+	SYSCFG_EXTILineConfig(USER_BUTTON_EXTI_PORT_SOURCE, USER_BUTTON_EXTI_PIN_SOURCE);
 
-	while(uwTimingDelay != 0);
+	/* Configure Button EXTI line */
+	EXTI_InitStructure.EXTI_Line = USER_BUTTON_EXTI_LINE;
+	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
+	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+	EXTI_Init(&EXTI_InitStructure);
+
+	/* Enable and set Button EXTI Interrupt to the lowest priority */
+	NVIC_InitStructure.NVIC_IRQChannel = USER_BUTTON_EXTI_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+
+	NVIC_Init(&NVIC_InitStructure);
 }
 
-/* This function is called from SysTick handler */
-void TimingDelay_Decrement(void)
-{
-	if (uwTimingDelay != 0x00)
-	{
-		uwTimingDelay--;
-	}
+static void todHandlerInterruptInit() {
+	EXTI_InitTypeDef EXTI_InitStructure;
+	NVIC_InitTypeDef NVIC_InitStructure;
+
+	/* Configure Button EXTI line */
+	EXTI_InitStructure.EXTI_Line = TOD_INTERRUPT_LINE;
+	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
+	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+	EXTI_Init(&EXTI_InitStructure);
+
+	/* Enable and set Button EXTI Interrupt to the lowest priority */
+	NVIC_InitStructure.NVIC_IRQChannel = TOD_INTERRUPT_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+
+	NVIC_Init(&NVIC_InitStructure);
+
 }
-
-/* This is called from syscalls.c as the implementation of _write syscall */
-int syscallWriteHandler(char *ptr, int len) {
-	int DataIdx;
-
-	for (DataIdx = 0; DataIdx < len; DataIdx++)	{
-//		USART_SendData(USART2, (uint8_t)*ptr);
-		ITM_SendChar((uint8_t)*ptr); // Sends it to ST-Link SWO as well so that it can be observed in ST-Link Utility
-
-//		while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET) {}
-
-		ptr++;
-	}
-
-//	while (USART_GetFlagStatus(USART2, USART_FLAG_TC) == RESET) {}
-
-	return len;
-}
-
 
 #ifdef  USE_FULL_ASSERT
 

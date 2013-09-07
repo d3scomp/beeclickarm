@@ -30,6 +30,19 @@ void uart2Init() {
 
 	USART_Init(USART2, &usartInitStruct);
 
+
+	NVIC_InitTypeDef nvicInitStruct;
+
+	/* Enable the USART2 Interrupt */
+	nvicInitStruct.NVIC_IRQChannel = USART2_IRQn;
+	nvicInitStruct.NVIC_IRQChannelPreemptionPriority = 0;
+	nvicInitStruct.NVIC_IRQChannelSubPriority = 1;
+	nvicInitStruct.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&nvicInitStruct);
+
+	USART_ITConfig(USART2, USART_IT_RXNE, ENABLE);
+
+
 	USART_Cmd(USART2, ENABLE);
 }
 
@@ -60,4 +73,12 @@ int uart2IsBreakOrError() {
 void uart2ClearBreakOrError() {
 	volatile int32_t dummy = USART2->SR;
 	USART2->DR = 0;
+}
+
+void uart2TXIntEnable() {
+	USART_ITConfig(USART2, USART_IT_TXE, ENABLE);
+}
+
+void uart2TXIntDisable() {
+	USART_ITConfig(USART2, USART_IT_TXE, DISABLE);
 }

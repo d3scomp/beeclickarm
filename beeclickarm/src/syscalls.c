@@ -1,31 +1,3 @@
-/**
- *****************************************************************************
- **
- **  File        : syscalls.c
- **
- **  Abstract    : Atollic TrueSTUDIO Minimal System calls file
- **
- ** 		          For more information about which c-functions
- **                need which of these lowlevel functions
- **                please consult the Newlib libc-manual
- **
- **  Environment : Atollic TrueSTUDIO
- **
- **  Distribution: The file is distributed �as is,� without any warranty
- **                of any kind.
- **
- **  (c)Copyright Atollic AB.
- **  You may use this file as-is or modify it according to the needs of your
- **  project. Distribution of this file (unmodified or modified) is not
- **  permitted. Atollic AB permit registered Atollic TrueSTUDIO(R) users the
- **  rights to distribute the assembled, compiled & linked contents of this
- **  file as part of an application binary file, provided that it is built
- **  using the Atollic TrueSTUDIO(R) Pro toolchain.
- **
- *****************************************************************************
- */
-
-/* Includes */
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -34,13 +6,12 @@
 #include <time.h>
 #include <sys/time.h>
 #include <sys/times.h>
+#include <stm32f4xx.h>
 
 
 /* Variables */
 //#undef errno
 extern int errno;
-extern int syscallWriteHandler(char *ptr, int len) __attribute__((weak));
-extern int syscallReadHandler(void) __attribute__((weak));
 
 register char * stack_ptr asm("sp");
 
@@ -67,6 +38,7 @@ void _exit (int status) {
 }
 
 int _read (int file, char *ptr, int len) {
+	/*
 	int DataIdx;
 
 	for (DataIdx = 0; DataIdx < len; DataIdx++)
@@ -75,10 +47,26 @@ int _read (int file, char *ptr, int len) {
 	}
 
 	return len;
+	*/
+
+	return 0;
 }
 
 int _write(int file, char *ptr, int len) {
-	return syscallWriteHandler(ptr, len);
+	int DataIdx;
+
+	for (DataIdx = 0; DataIdx < len; DataIdx++)	{
+		//		USART_SendData(USART2, (uint8_t)*ptr);
+		ITM_SendChar((uint8_t)*ptr); // Sends it to ST-Link SWO as well so that it can be observed in ST-Link Utility
+
+		//		while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET) {}
+
+		ptr++;
+	}
+
+	//	while (USART_GetFlagStatus(USART2, USART_FLAG_TC) == RESET) {}
+
+	return len;
 }
 
 caddr_t _sbrk(int incr) {

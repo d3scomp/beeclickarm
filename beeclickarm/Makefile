@@ -33,7 +33,8 @@ SRCS +=	${PERIPH_DIR}/src/misc.c
 CC=arm-none-eabi-gcc
 OBJCOPY=arm-none-eabi-objcopy
 
-CFLAGS  = -mcpu=cortex-m4 -g3 -gdwarf-2 -O2 -Wall 
+# For some reason -O2 generates wrong code for interrupts. At least the USER_BUTTON interrupt handler get called twice
+CFLAGS  = -mcpu=cortex-m4 -g3 -gdwarf-2 -O0 -Wall 
 CFLAGS += -mlittle-endian -mthumb -mcpu=cortex-m4 -mthumb-interwork -mfloat-abi=hard -mfpu=fpv4-sp-d16
 CFLAGS += -I$(SRC_DIR)
 CFLAGS += -I$(DISCOVERY_DIR)
@@ -63,7 +64,7 @@ init:
 $(BUILD_DIR)/$(PROJ_NAME).elf: $(OBJS)
 	arm-none-eabi-gcc $(LDFLAGS) -o "$@" $(OBJS)
 	arm-none-eabi-objcopy -O ihex "$@" $(BUILD_DIR)/$(PROJ_NAME).hex 
-	arm-none-eabi-objcopy -h -S "$<" > $(BUILD_DIR)/$(PROJ_NAME).lst 
+	arm-none-eabi-objdump -h -S "$@" > $(BUILD_DIR)/$(PROJ_NAME).lst 
 	arm-none-eabi-size --format=berkeley "$@"
 
 clean:

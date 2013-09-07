@@ -1,5 +1,7 @@
-/* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_it.h"
+#include "machine.h"
+#include <stm32f4_discovery.h>
+#include <stdio.h>
 
 /** @addtogroup Template_Project
  * @{
@@ -21,8 +23,7 @@
  * @param  None
  * @retval None
  */
-void NMI_Handler(void)
-{
+void NMI_Handler(void) {
 }
 
 /**
@@ -30,11 +31,9 @@ void NMI_Handler(void)
  * @param  None
  * @retval None
  */
-void HardFault_Handler(void)
-{
+void HardFault_Handler(void) {
 	/* Go to infinite loop when Hard Fault exception occurs */
-	while (1)
-	{
+	while (1) {
 	}
 }
 
@@ -43,11 +42,9 @@ void HardFault_Handler(void)
  * @param  None
  * @retval None
  */
-void MemManage_Handler(void)
-{
+void MemManage_Handler(void) {
 	/* Go to infinite loop when Memory Manage exception occurs */
-	while (1)
-	{
+	while (1) {
 	}
 }
 
@@ -56,11 +53,9 @@ void MemManage_Handler(void)
  * @param  None
  * @retval None
  */
-void BusFault_Handler(void)
-{
+void BusFault_Handler(void) {
 	/* Go to infinite loop when Bus Fault exception occurs */
-	while (1)
-	{
+	while (1) {
 	}
 }
 
@@ -69,11 +64,9 @@ void BusFault_Handler(void)
  * @param  None
  * @retval None
  */
-void UsageFault_Handler(void)
-{
+void UsageFault_Handler(void) {
 	/* Go to infinite loop when Usage Fault exception occurs */
-	while (1)
-	{
+	while (1) {
 	}
 }
 
@@ -82,8 +75,7 @@ void UsageFault_Handler(void)
  * @param  None
  * @retval None
  */
-void SVC_Handler(void)
-{
+void SVC_Handler(void) {
 }
 
 /**
@@ -91,8 +83,7 @@ void SVC_Handler(void)
  * @param  None
  * @retval None
  */
-void DebugMon_Handler(void)
-{
+void DebugMon_Handler(void) {
 }
 
 /**
@@ -100,8 +91,7 @@ void DebugMon_Handler(void)
  * @param  None
  * @retval None
  */
-void PendSV_Handler(void)
-{
+void PendSV_Handler(void) {
 }
 
 /**
@@ -109,9 +99,7 @@ void PendSV_Handler(void)
  * @param  None
  * @retval None
  */
-void SysTick_Handler(void)
-{
-	TimingDelay_Decrement();
+void SysTick_Handler(void) {
 }
 
 /******************************************************************************/
@@ -122,13 +110,33 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /**
- * @brief  This function handles PPP interrupt request.
+ * @brief  This function handles USARTx global interrupt request.
  * @param  None
  * @retval None
  */
-/*void PPP_IRQHandler(void)
-{
-}*/
+void USART2_IRQHandler(void) {
+	handleTXRXInterrupt();
+}
+
+/**
+ * @brief  This function handles EXTI0_IRQ Handler.
+ * @param  None
+ * @retval None
+ */
+void EXTI0_IRQHandler(void) {
+	handleInfoButtonInterrupt();
+	EXTI_ClearITPendingBit(USER_BUTTON_EXTI_LINE);
+}
+
+/**
+ * @brief  This function handles EXTI1_IRQ Handler.
+ * @param  None
+ * @retval None
+ */
+void EXTI1_IRQHandler(void) {
+	handleTODInterrupt();
+}
+
 
 /**
  * @}
