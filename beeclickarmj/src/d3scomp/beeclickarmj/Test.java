@@ -5,7 +5,7 @@ import java.io.IOException;
 public class Test {
 
 	public static void main(String[] args) throws CommException, IOException {
-		Comm comm = new JSSCComm("COM11");
+		Comm comm = new JSSCComm("COM5");
 		
 		comm.start();
 		

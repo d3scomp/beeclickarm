@@ -1,10 +1,10 @@
 package d3scomp.beeclickarmj;
 
 public class RXPacket {
-	byte[] data;
-	int rssi;
-	int lqi;
-	byte fcs;
+	private byte[] data;
+	private int rssi;
+	private int lqi;
+	private byte fcs;
 	
 	public RXPacket(byte[] data, int rssi, int lqi, byte fcs) {
 		this.data = data;

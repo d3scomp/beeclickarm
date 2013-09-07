@@ -11,7 +11,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 public abstract class AbstractComm implements Comm {
 
 	protected abstract byte[] readPort(int size) throws InterruptedException, CommException;
-	protected abstract void writePort(byte[] buffer) throws CommException;
+	protected abstract void writePort(byte[] buffer) throws InterruptedException, CommException;
 	protected abstract void openPort() throws CommException;
 	protected abstract void closePort() throws CommException;
 
