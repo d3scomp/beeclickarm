@@ -15,7 +15,7 @@ SRCS +=	${SRC_DIR}/stm32f4xx_it.c
 SRCS +=	${SRC_DIR}/uart_io.c
 SRCS +=	${SRC_DIR}/syscalls.c
 SRCS +=	${DISCOVERY_DIR}/system_stm32f4xx.c
-SRCS +=	${DISCOVERY_DIR}/startup_stm32f40xx.S
+SRCS +=	${DISCOVERY_DIR}/startup_stm32f40xx.s
 SRCS +=	${DISCOVERY_DIR}/stm32f4_discovery.c
 SRCS +=	${PERIPH_DIR}/src/stm32f4xx_rcc.c
 SRCS +=	${PERIPH_DIR}/src/stm32f4xx_exti.c
@@ -46,11 +46,12 @@ LDFLAGS = -Tstm32_flash.ld -Wl,-Map,$(BUILD_DIR)/beeclickarm.map $(CFLAGS)
 
 # add startup file to build
 OBJS = $(patsubst %.c,build/%.o,$(SRCS))
+OBJS := $(patsubst %.s,build/%.o,$(OBJS))
 
 build/%.o: %.c
 	arm-none-eabi-gcc $(CFLAGS) -c -o "$@" "$<"
 
-build/%.o: %.S
+build/%.o: %.s
 	arm-none-eabi-gcc $(CFLAGS) -c -o "$@" "$<"
 
 

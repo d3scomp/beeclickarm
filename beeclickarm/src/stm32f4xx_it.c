@@ -110,7 +110,7 @@ void SysTick_Handler(void) {
 /******************************************************************************/
 
 /**
- * @brief  This function handles USARTx global interrupt request.
+ * @brief  This function handles USART2 global interrupt request.
  * @param  None
  * @retval None
  */
@@ -137,6 +137,13 @@ void EXTI1_IRQHandler(void) {
 	handleTODInterrupt();
 }
 
+/**
+ * @brief  This function handles SPI1 global interrupt request.
+ * @param  None
+ * @retval None
+ */
+void SPI1_IRQHandler(void) {
+}
 
 /**
  * @}
