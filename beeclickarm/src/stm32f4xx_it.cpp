@@ -1,7 +1,7 @@
 #include "stm32f4xx_it.h"
-#include "machine.h"
 #include <stm32f4_discovery.h>
-#include <stdio.h>
+
+#include "UART.h"
 
 /** @addtogroup Template_Project
  * @{
@@ -115,7 +115,7 @@ void SysTick_Handler(void) {
  * @retval None
  */
 void USART2_IRQHandler(void) {
-	handleTXRXInterrupt();
+	UART::uart2.interruptHandler();
 }
 
 /**
@@ -124,8 +124,8 @@ void USART2_IRQHandler(void) {
  * @retval None
  */
 void EXTI0_IRQHandler(void) {
-	handleInfoButtonInterrupt();
-	EXTI_ClearITPendingBit(USER_BUTTON_EXTI_LINE);
+//	handleInfoButtonInterrupt();
+//	EXTI_ClearITPendingBit(USER_BUTTON_EXTI_LINE);
 }
 
 /**
@@ -134,7 +134,7 @@ void EXTI0_IRQHandler(void) {
  * @retval None
  */
 void EXTI1_IRQHandler(void) {
-	handleTODInterrupt();
+//	handleTODInterrupt();
 }
 
 /**

@@ -6,8 +6,11 @@
 #include <time.h>
 #include <sys/time.h>
 #include <sys/times.h>
-#include <stm32f4xx.h>
+#include "stm32f4xx.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* Variables */
 //#undef errno
@@ -133,7 +136,7 @@ int _stat(char *file, struct stat *st) {
 	return 0;
 }
 
-int _link(char *old, char *new) {
+int _link(char *o, char *n) {
 	errno = EMLINK;
 	return -1;
 }
@@ -147,3 +150,8 @@ int _execve(char *name, char **argv, char **env) {
 	errno = ENOMEM;
 	return -1;
 }
+
+
+#ifdef __cplusplus
+}
+#endif
