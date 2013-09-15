@@ -21,12 +21,12 @@ public:
 	void off();
 
 private:
-	LED(uint32_t clk, GPIO_TypeDef* gpio, uint32_t pin);
+	LED(GPIO_TypeDef* gpio, uint32_t pin, uint32_t clk);
 	virtual ~LED();
 
-	uint32_t clk;
 	GPIO_TypeDef* gpio;
 	uint32_t pin;
+	uint32_t clk;
 };
 
 #endif /* LED_H_ */

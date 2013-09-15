@@ -1,7 +1,7 @@
 #include "stm32f4xx_it.h"
-#include <stm32f4_discovery.h>
 
 #include "UART.h"
+#include "Button.h"
 
 /** @addtogroup Template_Project
  * @{
@@ -124,8 +124,7 @@ void USART2_IRQHandler(void) {
  * @retval None
  */
 void EXTI0_IRQHandler(void) {
-//	handleInfoButtonInterrupt();
-//	EXTI_ClearITPendingBit(USER_BUTTON_EXTI_LINE);
+	Button::info.interruptHandler();
 }
 
 /**

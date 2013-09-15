@@ -12,8 +12,6 @@ class MRF24J40 {
 public:
 	MRF24J40();
 	virtual ~MRF24J40();
-
-	void setChannel(int channelNo);
 };
 
 #endif /* MRF24J40_H_ */

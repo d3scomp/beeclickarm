@@ -15,7 +15,10 @@
 
 class UART {
 public:
-	typedef std::function<void()> ReadyListener;
+	typedef std::function<void()> Listener;
+
+	static UART uart2;
+	friend void USART2_IRQHandler();
 
 	uint8_t recv();
 	void send(uint8_t ch);
@@ -25,16 +28,13 @@ public:
 	bool isBreakOrError();
 	void clearBreakOrError();
 
-	void enableSendReadyEvents();
-	void disableSendReadyEvents();
-	void setSendReadyListener(ReadyListener sendReadyListener);
+	void enableSendEvents();
+	void disableSendEvents();
+	void setSendListener(Listener sendListener);
 
-	void enableRecvReadyEvents();
-	void disableRecvReadyEvents();
-	void setRecvReadyListener(ReadyListener recvReadyListener);
-
-	static UART uart2;
-	friend void USART2_IRQHandler();
+	void enableRecvEvents();
+	void disableRecvEvents();
+	void setRecvListener(Listener recvListener);
 
 private:
 	UART(uint32_t clkGPIO, uint32_t clkUSART, GPIO_TypeDef* gpio, USART_TypeDef* usart, uint16_t pinSourceTX, uint16_t pinSourceRX, uint32_t pinTX, uint32_t pinRX, uint8_t afConfig, uint8_t nvicIRQChannel);
@@ -50,8 +50,8 @@ private:
 	uint8_t afConfig;
 	uint8_t nvicIRQChannel;
 
-	ReadyListener sendReadyListener;
-	ReadyListener recvReadyListener;
+	Listener sendListener;
+	Listener recvListener;
 };
 
 #endif /* UART_H_ */

@@ -7,10 +7,10 @@
 
 #include "LED.h"
 
-LED LED::rxtx(RCC_AHB1Periph_GPIOD, GPIOD, GPIO_Pin_12);
-LED LED::outOfSync(RCC_AHB1Periph_GPIOD, GPIOD, GPIO_Pin_14);
-LED LED::rfRecv(RCC_AHB1Periph_GPIOD, GPIOD, GPIO_Pin_13);
-LED LED::rfSend(RCC_AHB1Periph_GPIOD, GPIOD, GPIO_Pin_15);
+LED LED::rxtx(GPIOD, GPIO_Pin_12, RCC_AHB1Periph_GPIOD);
+LED LED::outOfSync(GPIOD, GPIO_Pin_14, RCC_AHB1Periph_GPIOD);
+LED LED::rfRecv(GPIOD, GPIO_Pin_13, RCC_AHB1Periph_GPIOD);
+LED LED::rfSend(GPIOD, GPIO_Pin_15, RCC_AHB1Periph_GPIOD);
 
 void LED::on() {
 	gpio->BSRRL = pin;
@@ -20,8 +20,8 @@ void LED::off() {
 	gpio->BSRRH = pin;
 }
 
-LED::LED(uint32_t clk, GPIO_TypeDef* gpio, uint32_t pin):
-		clk(clk), gpio(gpio), pin(pin) {
+LED::LED(GPIO_TypeDef* gpio, uint32_t pin, uint32_t clk) :
+		gpio(gpio), pin(pin), clk(clk) {
 
 	GPIO_InitTypeDef  GPIO_InitStructure;
 

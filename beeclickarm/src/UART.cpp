@@ -38,40 +38,40 @@ void UART::clearBreakOrError() {
 	usart->DR = 0;
 }
 
-void UART::enableSendReadyEvents() {
+void UART::enableSendEvents() {
 	USART_ITConfig(USART2, USART_IT_TXE, ENABLE);
 }
 
-void UART::disableSendReadyEvents() {
+void UART::disableSendEvents() {
 	USART_ITConfig(USART2, USART_IT_TXE, DISABLE);
 }
 
-void UART::setSendReadyListener(ReadyListener sendReadyListener) {
-	this->sendReadyListener = sendReadyListener;
+void UART::setSendListener(Listener sendReadyListener) {
+	this->sendListener = sendReadyListener;
 }
 
-void UART::enableRecvReadyEvents() {
+void UART::enableRecvEvents() {
 	USART_ITConfig(USART2, USART_IT_RXNE, ENABLE);
 }
 
-void UART::disableRecvReadyEvents() {
+void UART::disableRecvEvents() {
 	USART_ITConfig(USART2, USART_IT_RXNE, DISABLE);
 }
 
-void UART::setRecvReadyListener(ReadyListener recvReadyListener) {
-	this->recvReadyListener = recvReadyListener;
+void UART::setRecvListener(Listener recvReadyListener) {
+	this->recvListener = recvReadyListener;
 }
 
 void UART::interruptHandler() {
 	if (USART_GetITStatus(usart, USART_IT_TXE)) {
-		if (sendReadyListener) {
-			sendReadyListener();
+		if (sendListener) {
+			sendListener();
 		}
 	}
 
 	if (USART_GetITStatus(usart, USART_IT_RXNE)) {
-		if (recvReadyListener) {
-			recvReadyListener();
+		if (recvListener) {
+			recvListener();
 		}
 	}
 }
