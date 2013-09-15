@@ -58,7 +58,7 @@ void Button::setPressedListener(Listener pressedListener) {
 	this->pressedListener = pressedListener;
 }
 
-void Button::interruptHandler() {
+void Button::pressedInterruptHandler() {
 	if (pressedListener) {
 		pressedListener();
 	}

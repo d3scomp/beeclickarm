@@ -62,7 +62,7 @@ void UART::setRecvListener(Listener recvReadyListener) {
 	this->recvListener = recvReadyListener;
 }
 
-void UART::interruptHandler() {
+void UART::txrxInterruptHandler() {
 	if (USART_GetITStatus(usart, USART_IT_TXE)) {
 		if (sendListener) {
 			sendListener();

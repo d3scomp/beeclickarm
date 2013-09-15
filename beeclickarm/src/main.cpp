@@ -5,10 +5,13 @@
  *      Author: Tomas Bures <bures@d3s.mff.cuni.cz>
  */
 
-#include "stm32f4xx.h"
+#include "main.h"
 #include "UART.h"
 #include "LED.h"
 #include "Button.h"
+#include "TODQueue.h"
+
+uint32_t mainCycles;
 
 int main(void)
 {
@@ -20,17 +23,21 @@ int main(void)
 	RCC_GetClocksFreq(&RCC_Clocks);
 	SysTick_Config(RCC_Clocks.HCLK_Frequency / 100);
 
-	UART *uart = &UART::uart2;
+	UART& tohdUart = UART::uart2;
+	PulseLED rxtxLed = PulseLED(PhysicalLED::rxtx, 5);
 
-	LED::rxtx.on();
+	Button::info.setPressedListener([&rxtxLed]{ rxtxLed.pulse(); });
 
-	bool ledOn = false;
-	Button::info.setPressedListener([&ledOn]{if (ledOn) LED::rfRecv.off(); else LED::rfRecv.on(); ledOn=!ledOn;});
+//	char ch = '0';
+//	tohdUart.setSendListener([&tohdUart, &ch]{ch = ch>'9' ? '0' : ch+1; tohdUart.send(ch);});
+//	tohdUart.enableSendEvents();
 
-	char ch = '0';
-	uart->setSendListener([&uart, &ch]{ch = ch>'9' ? '0' : ch+1; uart->send(ch);});
-	uart->enableSendEvents();
 
+	TODQueue todQueue(tohdUart, rxtxLed, PhysicalLED::outOfSync);
+	todQueue.handleRX();
+
+	tohdUart.setRecvListener([&todQueue]{ todQueue.handleRX(); });
+	tohdUart.enableRecvEvents();
 
 	// todHandlerInterruptInit();
 

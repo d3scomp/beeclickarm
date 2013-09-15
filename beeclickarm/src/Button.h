@@ -25,7 +25,7 @@ private:
 	Button(GPIO_TypeDef* gpio, uint32_t pin, uint32_t clk, uint32_t extiLine, uint8_t extiPortSource, uint8_t extiPinSource, IRQn irqn);
 	virtual ~Button();
 
-	void interruptHandler();
+	void pressedInterruptHandler();
 
 	GPIO_TypeDef* gpio;
 	uint32_t pin;

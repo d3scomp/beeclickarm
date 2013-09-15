@@ -1,7 +1,9 @@
 #include "stm32f4xx_it.h"
 
+#include "main.h"
 #include "UART.h"
 #include "Button.h"
+#include "LED.h"
 
 /** @addtogroup Template_Project
  * @{
@@ -100,6 +102,7 @@ void PendSV_Handler(void) {
  * @retval None
  */
 void SysTick_Handler(void) {
+	PulseLED::tickInterruptHandler();
 }
 
 /******************************************************************************/
@@ -115,7 +118,7 @@ void SysTick_Handler(void) {
  * @retval None
  */
 void USART2_IRQHandler(void) {
-	UART::uart2.interruptHandler();
+	UART::uart2.txrxInterruptHandler();
 }
 
 /**
@@ -124,7 +127,7 @@ void USART2_IRQHandler(void) {
  * @retval None
  */
 void EXTI0_IRQHandler(void) {
-	Button::info.interruptHandler();
+	Button::info.pressedInterruptHandler();
 }
 
 /**
