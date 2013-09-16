@@ -16,14 +16,10 @@
 #include "LED.h"
 
 
-#define MAX_RF_PACKET_LENGTH 128
-
-#define MAX_TOD_QUEUE_LENGTH 8
-
-
 struct TODMessage {
 public:
 	static constexpr uint8_t SYNC_PATTERN[] {'H', 'e', 'l', 'l', 'o', ' ', 't', 'h', 'e', 'r', 'e', '!'};
+	static constexpr auto MAX_RF_PACKET_LENGTH = 128;
 
 	enum class Type : uint8_t {
 		SYNC, SEND_PACKET, SET_CHANNEL, SET_ADDR, count
@@ -80,13 +76,13 @@ public:
 	TODQueue(UART& uart, PulseLED& rxLed, LED& outOfSyncLed);
 	virtual ~TODQueue();
 
-	inline TODMessage& getCurrentMsg() {
+	void init();
+
+	inline TODMessage& getCurrentMsgRead() {
 		return queue[readIdx];
 	}
 
-	void moveToNextMsg();
-
-	void handleRX();
+	void moveToNextMsgRead();
 
 	typedef std::function<void()> Listener;
 	void setMessageAvailableListener(Listener messageAvailableListener);
@@ -100,16 +96,18 @@ private:
 	PulseLED& rxLed;
 	LED& outOfSyncLed;
 
-	RXState rxState;
-	uint32_t rxBufferPos;
-
 	void moveToNextMsgWrite();
 
-	TODMessage queue[MAX_TOD_QUEUE_LENGTH];
-	uint32_t readIdx; // From which position the msg is to be read (if todQueueReadPtr == todQueueWritePtr then there is nothing to be read)
+	static constexpr uint32_t MAX_QUEUE_LENGTH = 8;
+	TODMessage queue[MAX_QUEUE_LENGTH];
+	uint32_t readIdx; // From which position the msg is to be read (if readIdx == writeIdx then there is nothing to be read)
 	uint32_t writeIdx; // To which position the msg is to be written
 
 	Listener messageAvailableListener;
+
+	RXState rxState;
+	uint32_t rxBufferPos;
+	void handleRX();
 };
 
 #endif /* TODQUEUE_H_ */

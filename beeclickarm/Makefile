@@ -14,6 +14,7 @@ SRCS +=	${SRC_DIR}/UART.cpp
 SRCS +=	${SRC_DIR}/LED.cpp 
 SRCS +=	${SRC_DIR}/Button.cpp 
 SRCS +=	${SRC_DIR}/TODQueue.cpp 
+SRCS +=	${SRC_DIR}/TOHQueue.cpp 
 #SRCS +=	${SRC_DIR}/machine.c 
 SRCS +=	${SRC_DIR}/stm32f4xx_it.cpp 
 #SRCS +=	${SRC_DIR}/uart_io.c

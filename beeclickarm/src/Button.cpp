@@ -12,7 +12,12 @@ Button Button::info(GPIOA, GPIO_Pin_0, RCC_AHB1Periph_GPIOA, EXTI_Line0, EXTI_Po
 
 Button::Button(GPIO_TypeDef* gpio, uint32_t pin, uint32_t clk, uint32_t extiLine, uint8_t extiPortSource, uint8_t extiPinSource, IRQn irqn) :
 		gpio(gpio), pin(pin), clk(clk), extiLine(extiLine), extiPortSource(extiPortSource), extiPinSource(extiPinSource), irqn(irqn) {
+}
 
+Button::~Button() {
+}
+
+void Button::init() {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	EXTI_InitTypeDef EXTI_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
@@ -43,10 +48,6 @@ Button::Button(GPIO_TypeDef* gpio, uint32_t pin, uint32_t clk, uint32_t extiLine
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 
 	NVIC_Init(&NVIC_InitStructure);
-
-}
-
-Button::~Button() {
 }
 
 
@@ -65,3 +66,4 @@ void Button::pressedInterruptHandler() {
 
 	EXTI_ClearITPendingBit(extiLine);
 }
+

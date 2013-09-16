@@ -7,20 +7,18 @@
 
 #include "LED.h"
 
-LED::LED() {
+LED LED::rxtx(GPIOD, GPIO_Pin_12, RCC_AHB1Periph_GPIOD);
+LED LED::outOfSync(GPIOD, GPIO_Pin_14, RCC_AHB1Periph_GPIOD);
+LED LED::rfRecv(GPIOD, GPIO_Pin_13, RCC_AHB1Periph_GPIOD);
+LED LED::rfSend(GPIOD, GPIO_Pin_15, RCC_AHB1Periph_GPIOD);
+
+LED::LED(GPIO_TypeDef* gpio, uint32_t pin, uint32_t clk) :	gpio(gpio), pin(pin), clk(clk) {
 }
 
 LED::~LED() {
 }
 
-
-PhysicalLED PhysicalLED::rxtx(GPIOD, GPIO_Pin_12, RCC_AHB1Periph_GPIOD);
-PhysicalLED PhysicalLED::outOfSync(GPIOD, GPIO_Pin_14, RCC_AHB1Periph_GPIOD);
-PhysicalLED PhysicalLED::rfRecv(GPIOD, GPIO_Pin_13, RCC_AHB1Periph_GPIOD);
-PhysicalLED PhysicalLED::rfSend(GPIOD, GPIO_Pin_15, RCC_AHB1Periph_GPIOD);
-
-PhysicalLED::PhysicalLED(GPIO_TypeDef* gpio, uint32_t pin, uint32_t clk) :	gpio(gpio), pin(pin), clk(clk) {
-
+void LED::init() {
 	GPIO_InitTypeDef  GPIO_InitStructure;
 
 	/* Enable the GPIO_LED Clock */
@@ -35,29 +33,24 @@ PhysicalLED::PhysicalLED(GPIO_TypeDef* gpio, uint32_t pin, uint32_t clk) :	gpio(
 	GPIO_Init(gpio, &GPIO_InitStructure);
 }
 
-PhysicalLED::~PhysicalLED() {
-}
-
-void PhysicalLED::on() {
+void LED::on() {
 	gpio->BSRRL = pin;
 }
 
-void PhysicalLED::off() {
+void LED::off() {
 	gpio->BSRRH = pin;
 }
 
 
-std::list<PulseLED*> PulseLED::tickListeners;
+PulseLED* PulseLED::tickListener;
 
 void PulseLED::tickInterruptHandler() {
-	for (PulseLED* listener : tickListeners) {
-		listener->tick();
-	}
+	tickListener->tick();
 }
 
 
 PulseLED::PulseLED(LED& led, int minimalOnTimeTicks) : led(led), minimalOnTimeTicks(minimalOnTimeTicks), onTicks(-1) {
-	tickListeners.push_back(this);
+	tickListener=this;
 }
 
 PulseLED::~PulseLED() {

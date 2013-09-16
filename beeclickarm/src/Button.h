@@ -16,15 +16,17 @@ public:
 	typedef std::function<void()> Listener;
 
 	static Button info;
-	friend void EXTI0_IRQHandler();
 
 	bool isPressed();
 	void setPressedListener(Listener pressedListener);
+
+	void init();
 
 private:
 	Button(GPIO_TypeDef* gpio, uint32_t pin, uint32_t clk, uint32_t extiLine, uint8_t extiPortSource, uint8_t extiPinSource, IRQn irqn);
 	virtual ~Button();
 
+	friend void EXTI0_IRQHandler();
 	void pressedInterruptHandler();
 
 	GPIO_TypeDef* gpio;

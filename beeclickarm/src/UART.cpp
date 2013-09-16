@@ -88,7 +88,13 @@ UART::UART(uint32_t clkGPIO, uint32_t clkUSART, GPIO_TypeDef* gpio, USART_TypeDe
 		pinRX(pinRX),
 		afConfig(afConfig),
 		nvicIRQChannel(nvicIRQChannel) {
+}
 
+UART::~UART() {
+	USART_DeInit(usart);
+}
+
+void UART::init() {
 	RCC_AHB1PeriphClockCmd(clkGPIO, ENABLE);
 
 	GPIO_PinAFConfig(gpio, pinSourceTX, afConfig); // alternative function USARTx_TX
@@ -120,7 +126,7 @@ UART::UART(uint32_t clkGPIO, uint32_t clkUSART, GPIO_TypeDef* gpio, USART_TypeDe
 
 	NVIC_InitTypeDef nvicInitStruct;
 
-	/* Enable the USART2 Interrupt */
+	// Enable the USART2 Interrupt
 	nvicInitStruct.NVIC_IRQChannel = nvicIRQChannel;
 	nvicInitStruct.NVIC_IRQChannelPreemptionPriority = 0;
 	nvicInitStruct.NVIC_IRQChannelSubPriority = 1;
@@ -129,9 +135,5 @@ UART::UART(uint32_t clkGPIO, uint32_t clkUSART, GPIO_TypeDef* gpio, USART_TypeDe
 
 
 	USART_Cmd(usart, ENABLE);
-}
-
-UART::~UART() {
-	USART_DeInit(usart);
 }
 

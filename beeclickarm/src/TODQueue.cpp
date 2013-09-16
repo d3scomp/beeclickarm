@@ -19,28 +19,35 @@ TODMessage::CorrectSync TODMessage::CORRECT_SYNC;
 
 TODMessage::CorrectSync::CorrectSync() {
 	type = TODMessage::Type::SYNC;
-	memcpy(pattern, SYNC_PATTERN, sizeof(SYNC_PATTERN));
+	std::memcpy(pattern, SYNC_PATTERN, sizeof(SYNC_PATTERN));
 }
 
 
-TODQueue::TODQueue(UART& uart, PulseLED& rxLed, LED& outOfSyncLed) : uart(uart), rxLed(rxLed), outOfSyncLed(outOfSyncLed), rxState(RXState::SYNC), rxBufferPos(0), readIdx(0), writeIdx(0) {
+TODQueue::TODQueue(UART& uart, PulseLED& rxLed, LED& outOfSyncLed) : uart(uart), rxLed(rxLed), outOfSyncLed(outOfSyncLed), readIdx(0), writeIdx(0), rxState(RXState::SYNC), rxBufferPos(0) {
 }
 
 TODQueue::~TODQueue() {
 }
 
-void TODQueue::moveToNextMsg() {
+void TODQueue::init() {
+	outOfSyncLed.on();
+
+	uart.setRecvListener([&,this]{ this->handleRX(); });
+	uart.enableRecvEvents();
+}
+
+void TODQueue::moveToNextMsgRead() {
 	assert_param(readIdx != writeIdx);
 
 	readIdx++;
-	if (readIdx == MAX_TOD_QUEUE_LENGTH) {
+	if (readIdx == MAX_QUEUE_LENGTH) {
 		readIdx = 0;
 	}
 }
 
 void TODQueue::moveToNextMsgWrite() {
 	writeIdx++;
-	if (writeIdx == MAX_TOD_QUEUE_LENGTH) {
+	if (writeIdx == MAX_QUEUE_LENGTH) {
 		writeIdx = 0;
 	}
 

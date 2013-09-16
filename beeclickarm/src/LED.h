@@ -9,30 +9,21 @@
 #define LED_H_
 
 #include "stm32f4xx.h"
-#include <list>
 
 class LED {
 public:
-	LED();
-	virtual ~LED();
+	static LED rxtx;
+	static LED outOfSync;
+	static LED rfRecv;
+	static LED rfSend;
 
-	virtual void on() = 0;
-	virtual void off() = 0;
-};
-
-class PhysicalLED : public LED {
-public:
-	static PhysicalLED rxtx;
-	static PhysicalLED outOfSync;
-	static PhysicalLED rfRecv;
-	static PhysicalLED rfSend;
-
-	virtual void on();
-	virtual void off();
+	void on();
+	void off();
+	void init();
 
 private:
-	PhysicalLED(GPIO_TypeDef* gpio, uint32_t pin, uint32_t clk);
-	virtual ~PhysicalLED();
+	LED(GPIO_TypeDef* gpio, uint32_t pin, uint32_t clk);
+	virtual ~LED();
 
 	GPIO_TypeDef* gpio;
 	uint32_t pin;
@@ -53,7 +44,7 @@ private:
 
 	void tick();
 
-	static std::list<PulseLED *> tickListeners;
+	static PulseLED* tickListener;
 	static void tickInterruptHandler();
 
 	friend void SysTick_Handler();

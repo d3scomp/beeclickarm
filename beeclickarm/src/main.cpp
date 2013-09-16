@@ -10,8 +10,41 @@
 #include "LED.h"
 #include "Button.h"
 #include "TODQueue.h"
+#include "TOHQueue.h"
+
+#include <cstdio>
 
 uint32_t mainCycles;
+
+PulseLED rxtxLed = PulseLED(LED::rxtx, 5);
+TODQueue todQueue(UART::uart2, rxtxLed, LED::outOfSync);
+TOHQueue tohQueue(UART::uart2, rxtxLed);
+
+void handleInfoButtonInterrupt() {
+
+	TOHMessage& msg = tohQueue.getCurrentMsgWrite();
+
+	msg.type = TOHMessage::Type::INFO;
+
+
+	std::sprintf(msg.info.text,
+//			"txCount: %d\n"
+//			"rxCount: %d\n"
+//			"rxState: %d\n"
+//			"panId: %02x%02x\n"
+//			"sAddr: %02x%02x\n"
+//			"channelNo: %d\n"
+			"mainCycles: %lu",
+//			txCount, rxCount, rxState, panId[1], panId[0], sAddr[1], sAddr[0], channelNo,
+			mainCycles);
+
+	msg.info.length = std::strlen(msg.info.text);
+
+	tohQueue.moveToNextMsgWrite();
+
+//	rxtxLed.pulse();
+}
+
 
 int main(void)
 {
@@ -23,28 +56,26 @@ int main(void)
 	RCC_GetClocksFreq(&RCC_Clocks);
 	SysTick_Config(RCC_Clocks.HCLK_Frequency / 100);
 
-	UART& tohdUart = UART::uart2;
-	PulseLED rxtxLed = PulseLED(PhysicalLED::rxtx, 5);
+	LED::outOfSync.init();
+	LED::rxtx.init();
+	UART::uart2.init();
+	tohQueue.init();
+	todQueue.init();
+	Button::info.init();
 
-	Button::info.setPressedListener([&rxtxLed]{ rxtxLed.pulse(); });
+	Button::info.setPressedListener([]{ handleInfoButtonInterrupt(); });
+//	Button::info.setPressedListener([&rxtxLed]{ rxtxLed.pulse(); });
 
 //	char ch = '0';
 //	tohdUart.setSendListener([&tohdUart, &ch]{ch = ch>'9' ? '0' : ch+1; tohdUart.send(ch);});
 //	tohdUart.enableSendEvents();
 
-
-	TODQueue todQueue(tohdUart, rxtxLed, PhysicalLED::outOfSync);
-	todQueue.handleRX();
-
-	tohdUart.setRecvListener([&todQueue]{ todQueue.handleRX(); });
-	tohdUart.enableRecvEvents();
-
 	// todHandlerInterruptInit();
 
-	NVIC_SystemLPConfig(NVIC_LP_SLEEPONEXIT, ENABLE);
+//	NVIC_SystemLPConfig(NVIC_LP_SLEEPONEXIT, ENABLE);
 	while (1) {
-		__WFI();
-//		mainCycles++; // This is to measure how many times we wake up from WFI. In fact, we should never wake up.
+//		__WFI();
+		mainCycles++; // This is to measure how many times we wake up from WFI. In fact, we should never wake up.
 	}
 }
 

@@ -20,6 +20,8 @@ public:
 	static UART uart2;
 	friend void USART2_IRQHandler();
 
+	void init();
+
 	uint8_t recv();
 	void send(uint8_t ch);
 	bool canSend();
