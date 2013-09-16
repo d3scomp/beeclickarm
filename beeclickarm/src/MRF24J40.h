@@ -11,7 +11,7 @@
 class MRF24J40 {
 public:
 	MRF24J40();
-	virtual ~MRF24J40();
+	~MRF24J40();
 };
 
 #endif /* MRF24J40_H_ */

@@ -23,8 +23,9 @@ public:
 	void init();
 
 private:
+	// TODO: Add priorities
 	Button(GPIO_TypeDef* gpio, uint32_t pin, uint32_t clk, uint32_t extiLine, uint8_t extiPortSource, uint8_t extiPinSource, IRQn irqn);
-	virtual ~Button();
+	~Button();
 
 	friend void EXTI0_IRQHandler();
 	void pressedInterruptHandler();

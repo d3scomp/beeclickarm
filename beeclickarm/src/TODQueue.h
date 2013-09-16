@@ -74,7 +74,7 @@ private:
 class TODQueue {
 public:
 	TODQueue(UART& uart, PulseLED& rxLed, LED& outOfSyncLed);
-	virtual ~TODQueue();
+	~TODQueue();
 
 	void init();
 

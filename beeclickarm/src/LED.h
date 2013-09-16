@@ -9,6 +9,7 @@
 #define LED_H_
 
 #include "stm32f4xx.h"
+#include <list>
 
 class LED {
 public:
@@ -23,7 +24,7 @@ public:
 
 private:
 	LED(GPIO_TypeDef* gpio, uint32_t pin, uint32_t clk);
-	virtual ~LED();
+	~LED();
 
 	GPIO_TypeDef* gpio;
 	uint32_t pin;
@@ -36,6 +37,7 @@ public:
 	~PulseLED();
 
 	void pulse();
+	void init();
 
 private:
 	LED& led;
@@ -44,7 +46,7 @@ private:
 
 	void tick();
 
-	static PulseLED* tickListener;
+	static std::list<PulseLED*> tickListeners;
 	static void tickInterruptHandler();
 
 	friend void SysTick_Handler();

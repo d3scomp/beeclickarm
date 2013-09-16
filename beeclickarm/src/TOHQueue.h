@@ -84,7 +84,7 @@ private:
 class TOHQueue {
 public:
 	TOHQueue(UART& uart, PulseLED& txLed);
-	virtual ~TOHQueue();
+	~TOHQueue();
 
 	void init();
 

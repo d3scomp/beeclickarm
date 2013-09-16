@@ -34,7 +34,7 @@ void handleInfoButtonInterrupt() {
 //			"panId: %02x%02x\n"
 //			"sAddr: %02x%02x\n"
 //			"channelNo: %d\n"
-			"mainCycles: %lu",
+			"mainCycles: %lu\n",
 //			txCount, rxCount, rxState, panId[1], panId[0], sAddr[1], sAddr[0], channelNo,
 			mainCycles);
 
@@ -58,6 +58,8 @@ int main(void)
 
 	LED::outOfSync.init();
 	LED::rxtx.init();
+	rxtxLed.init();
+
 	UART::uart2.init();
 	tohQueue.init();
 	todQueue.init();
@@ -72,9 +74,9 @@ int main(void)
 
 	// todHandlerInterruptInit();
 
-//	NVIC_SystemLPConfig(NVIC_LP_SLEEPONEXIT, ENABLE);
+	NVIC_SystemLPConfig(NVIC_LP_SLEEPONEXIT, ENABLE);
 	while (1) {
-//		__WFI();
+		__WFI();
 		mainCycles++; // This is to measure how many times we wake up from WFI. In fact, we should never wake up.
 	}
 }
