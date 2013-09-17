@@ -4,6 +4,7 @@
 #include "UART.h"
 #include "Button.h"
 #include "LED.h"
+#include "MsgHandler.h"
 
 /** @addtogroup Template_Project
  * @{
@@ -136,7 +137,7 @@ void EXTI0_IRQHandler(void) {
  * @retval None
  */
 void EXTI1_IRQHandler(void) {
-//	handleTODInterrupt();
+	MsgHandler::runInterruptHandler();
 }
 
 /**

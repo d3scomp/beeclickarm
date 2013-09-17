@@ -11,6 +11,7 @@
 #include "Button.h"
 #include "TODQueue.h"
 #include "TOHQueue.h"
+#include "MsgHandler.h"
 
 #include <cstdio>
 
@@ -19,15 +20,16 @@ uint32_t mainCycles;
 PulseLED rxtxLed = PulseLED(LED::rxtx, 5);
 TODQueue todQueue(UART::uart2, rxtxLed, LED::outOfSync);
 TOHQueue tohQueue(UART::uart2, rxtxLed);
+MsgHandler msgHandler(todQueue, tohQueue, EXTI_Line1, EXTI1_IRQn);
 
 void handleInfoButtonInterrupt() {
 
-	TOHMessage& msg = tohQueue.getCurrentMsgWrite();
+	TOHMessage::Info& msg = tohQueue.getCurrentMsgWrite().info;
 
 	msg.type = TOHMessage::Type::INFO;
 
 
-	std::sprintf(msg.info.text,
+	std::sprintf(msg.text,
 //			"txCount: %d\n"
 //			"rxCount: %d\n"
 //			"rxState: %d\n"
@@ -38,18 +40,20 @@ void handleInfoButtonInterrupt() {
 //			txCount, rxCount, rxState, panId[1], panId[0], sAddr[1], sAddr[0], channelNo,
 			mainCycles);
 
-	msg.info.length = std::strlen(msg.info.text);
+	msg.length = std::strlen(msg.text);
 
 	tohQueue.moveToNextMsgWrite();
-
-//	rxtxLed.pulse();
 }
 
 
 int main(void)
 {
-	NVIC_SetPriorityGrouping(NVIC_PriorityGroup_2);	// 2 bits for pre-emption priority, 2 bits for subpriority
-	// this effectively disables interrupt preemption of our interrupt handlers
+	NVIC_SetPriorityGrouping(NVIC_PriorityGroup_2);	// 2 bits for pre-emption priority, 2 bits for non-preemptive subpriority
+	// TODO: Here comes MRF24J40 communication with priority (0,0)
+	UART::uart2.setPriority(1,0);
+	// TODO: Here comes MRF24J40 packet receive interrupt with priority (2,0)
+	Button::info.setPriority(2,1);
+	msgHandler.setPriority(2,2);
 
 	/* Set SysTick to fire each 10ms */
 	RCC_ClocksTypeDef RCC_Clocks;
@@ -62,17 +66,11 @@ int main(void)
 
 	UART::uart2.init();
 	tohQueue.init();
+	msgHandler.init();
 	todQueue.init();
 	Button::info.init();
 
 	Button::info.setPressedListener([]{ handleInfoButtonInterrupt(); });
-//	Button::info.setPressedListener([&rxtxLed]{ rxtxLed.pulse(); });
-
-//	char ch = '0';
-//	tohdUart.setSendListener([&tohdUart, &ch]{ch = ch>'9' ? '0' : ch+1; tohdUart.send(ch);});
-//	tohdUart.enableSendEvents();
-
-	// todHandlerInterruptInit();
 
 	NVIC_SystemLPConfig(NVIC_LP_SLEEPONEXIT, ENABLE);
 	while (1) {
@@ -81,30 +79,6 @@ int main(void)
 	}
 }
 
-
-/*
-
-static void todHandlerInterruptInit() {
-	EXTI_InitTypeDef EXTI_InitStructure;
-	NVIC_InitTypeDef NVIC_InitStructure;
-
-	// Configure Button EXTI line
-	EXTI_InitStructure.EXTI_Line = TOD_INTERRUPT_LINE;
-	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
-	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
-	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
-	EXTI_Init(&EXTI_InitStructure);
-
-	// Enable and set Button EXTI Interrupt to the lowest priority
-	NVIC_InitStructure.NVIC_IRQChannel = TOD_INTERRUPT_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-
-	NVIC_Init(&NVIC_InitStructure);
-}
-
-*/
 
 #ifdef  USE_FULL_ASSERT
 

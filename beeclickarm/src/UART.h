@@ -20,6 +20,7 @@ public:
 	static UART uart2;
 	friend void USART2_IRQHandler();
 
+	void setPriority(uint8_t irqPreemptionPriority, uint8_t irqSubPriority);
 	void init();
 
 	uint8_t recv();
@@ -51,6 +52,10 @@ private:
 	uint16_t pinSourceTX, pinSourceRX;
 	uint32_t pinTX, pinRX;
 	uint8_t afConfig;
+
+	uint8_t irqPreemptionPriority;
+	uint8_t irqSubPriority;
+
 	uint8_t nvicIRQChannel;
 
 	Listener sendListener;

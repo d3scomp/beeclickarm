@@ -78,6 +78,10 @@ public:
 
 	void init();
 
+	inline bool isMsgReadAvailable() {
+		return readIdx != writeIdx;
+	}
+
 	inline TODMessage& getCurrentMsgRead() {
 		return queue[readIdx];
 	}

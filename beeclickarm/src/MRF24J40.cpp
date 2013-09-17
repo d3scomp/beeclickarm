@@ -8,12 +8,10 @@
 #include "MRF24J40.h"
 
 MRF24J40::MRF24J40() {
-	// TODO Auto-generated constructor stub
 
 }
 
 MRF24J40::~MRF24J40() {
-	// TODO Auto-generated destructor stub
 }
 
 /*

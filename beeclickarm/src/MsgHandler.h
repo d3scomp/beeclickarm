@@ -11,28 +11,43 @@
 #include "stm32f4xx.h"
 #include "TODQueue.h"
 #include "TOHQueue.h"
-#include <list>
+#include <functional>
 
 class MsgHandler {
 public:
-	// TODO: Add priorities
-	MsgHandler(TODQueue& todQueue, TOHQueue& tohQueue);
+	MsgHandler(TODQueue& todQueue, TOHQueue& tohQueue, uint32_t extiLine, IRQn irqn);
 	~MsgHandler();
 
+	void setPriority(uint8_t irqPreemptionPriority, uint8_t irqSubPriority);
 	void init();
 
 private:
-	void run();
+	TODQueue& todQueue;
+	TOHQueue& tohQueue;
 
-	void newTODMsg();
+	uint8_t irqPreemptionPriority;
+	uint8_t irqSubPriority;
+
+	uint32_t extiLine;
+	IRQn irqn;
+
+	void messageAvailableListener();
+
 	void moveToNextTODMsg();
 
-	static std::list<MsgHandler*> runListeners;
+	static MsgHandler* runListener;
 	static void runInterruptHandler();
 
 	friend void EXTI1_IRQHandler();
 
-	static std::function<void()> msgHandlers[static_cast<int>(TODMessage::Type::count)];
+	static std::function<void(MsgHandler*)> msgHandlers[static_cast<int>(TODMessage::Type::count)];
+
+	void run();
+
+	void handleSync();
+	void handleSendPacket();
+	void handleSetChannel();
+	void handleSetAddr();
 };
 
 #endif /* MSGHANDLER_H_ */

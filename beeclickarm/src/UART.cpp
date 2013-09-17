@@ -87,12 +87,20 @@ UART::UART(uint32_t clkGPIO, uint32_t clkUSART, GPIO_TypeDef* gpio, USART_TypeDe
 		pinTX(pinTX),
 		pinRX(pinRX),
 		afConfig(afConfig),
+		irqPreemptionPriority(0), irqSubPriority(0),
 		nvicIRQChannel(nvicIRQChannel) {
 }
 
 UART::~UART() {
 	USART_DeInit(usart);
 }
+
+
+void UART::setPriority(uint8_t irqPreemptionPriority, uint8_t irqSubPriority) {
+	this->irqPreemptionPriority = irqPreemptionPriority;
+	this->irqSubPriority = irqSubPriority;
+}
+
 
 void UART::init() {
 	RCC_AHB1PeriphClockCmd(clkGPIO, ENABLE);
