@@ -23,7 +23,7 @@ TODMessage::CorrectSync::CorrectSync() {
 }
 
 
-TODQueue::TODQueue(UART& uart, PulseLED& rxLed, LED& outOfSyncLed) : uart(uart), rxLed(rxLed), outOfSyncLed(outOfSyncLed), readIdx(0), writeIdx(0), rxState(RXState::SYNC), rxBufferPos(0) {
+TODQueue::TODQueue(UART& uart, PulseLED& rxLed, LED& outOfSyncLed) : uart(uart), rxLed(rxLed), outOfSyncLed(outOfSyncLed), rxState(RXState::SYNC) {
 }
 
 TODQueue::~TODQueue() {

@@ -14,8 +14,13 @@ MRF24J40::MRF24J40() {
 MRF24J40::~MRF24J40() {
 }
 
+void MRF24J40::setPriority(uint8_t irqPreemptionPriority, uint8_t irqSubPriority) {
+	this->irqPreemptionPriority = irqPreemptionPriority;
+	this->irqSubPriority = irqSubPriority;
+}
+
+void MRF24J40::init() {
 /*
-static void rfCommInit() {
 	// TODO: All the PIN assignment below are wrong. Have to be updated to fit the DISCOVERY board
 
 	GPIO_InitTypeDef GPIO_InitStructure;
@@ -91,8 +96,26 @@ static void rfCommInit() {
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 
 	NVIC_Init(&NVIC_InitStructure);
-
-
+ */
 }
 
- */
+void MRF24J40::setChannel(uint8_t channel) {
+	// TODO
+
+	this->channel = channel;
+}
+
+void MRF24J40::setAddr(uint8_t panId[2], uint8_t sAddr[2]) {
+	// TODO
+
+	this->panId[0] = panId[0];
+	this->panId[1] = panId[1];
+	this->sAddr[0] = sAddr[0];
+	this->sAddr[1] = sAddr[1];
+}
+
+void MRF24J40::sendPacket(uint8_t* data, uint8_t length) {
+	// TODO
+
+	txCount++;
+}

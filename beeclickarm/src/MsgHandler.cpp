@@ -10,8 +10,8 @@
 
 MsgHandler* MsgHandler::runListener;
 
-MsgHandler::MsgHandler(TODQueue& todQueue, TOHQueue& tohQueue, uint32_t extiLine, IRQn irqn) :
-		todQueue(todQueue), tohQueue(tohQueue), irqPreemptionPriority(0), irqSubPriority(0), extiLine(extiLine), irqn(irqn) {
+MsgHandler::MsgHandler(MRF24J40 &mrf, TODQueue& todQueue, TOHQueue& tohQueue, uint32_t extiLine, IRQn irqn) :
+		mrf(mrf), todQueue(todQueue), tohQueue(tohQueue), irqPreemptionPriority(0), irqSubPriority(0), extiLine(extiLine), irqn(irqn) {
 }
 
 MsgHandler::~MsgHandler() {
@@ -88,7 +88,7 @@ void MsgHandler::handleSync() {
 void MsgHandler::handleSendPacket() {
 	TODMessage::SendPacket& inMsg = todQueue.getCurrentMsgRead().sendPacket;
 
-	// TODO
+	mrf.sendPacket(inMsg.data, inMsg.length);
 
 	TOHMessage::PacketSent& outMsg = tohQueue.getCurrentMsgWrite().packetSent;
 	outMsg.type = TOHMessage::Type::PACKET_SENT;
@@ -104,7 +104,7 @@ void MsgHandler::handleSendPacket() {
 void MsgHandler::handleSetChannel() {
 	TODMessage::SetChannel& inMsg = todQueue.getCurrentMsgRead().setChannel;
 
-	// TODO
+	mrf.setChannel(inMsg.channel);
 
 	TOHMessage::ChannelSet& outMsg = tohQueue.getCurrentMsgWrite().channelSet;
 	outMsg.type = TOHMessage::Type::CHANNEL_SET;
@@ -117,7 +117,7 @@ void MsgHandler::handleSetChannel() {
 void MsgHandler::handleSetAddr() {
 	TODMessage::SetAddr& inMsg = todQueue.getCurrentMsgRead().setAddr;
 
-	// TODO
+	mrf.setAddr(inMsg.panId, inMsg.sAddr);
 
 	TOHMessage::AddrSet& outMsg = tohQueue.getCurrentMsgWrite().addrSet;
 	outMsg.type = TOHMessage::Type::ADDR_SET;

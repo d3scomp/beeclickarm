@@ -87,7 +87,6 @@ UART::UART(uint32_t clkGPIO, uint32_t clkUSART, GPIO_TypeDef* gpio, USART_TypeDe
 		pinTX(pinTX),
 		pinRX(pinRX),
 		afConfig(afConfig),
-		irqPreemptionPriority(0), irqSubPriority(0),
 		nvicIRQChannel(nvicIRQChannel) {
 }
 

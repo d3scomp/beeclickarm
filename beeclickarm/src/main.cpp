@@ -12,6 +12,7 @@
 #include "TODQueue.h"
 #include "TOHQueue.h"
 #include "MsgHandler.h"
+#include "MRF24J40.h"
 
 #include <cstdio>
 
@@ -20,7 +21,8 @@ uint32_t mainCycles;
 PulseLED rxtxLed = PulseLED(LED::rxtx, 5);
 TODQueue todQueue(UART::uart2, rxtxLed, LED::outOfSync);
 TOHQueue tohQueue(UART::uart2, rxtxLed);
-MsgHandler msgHandler(todQueue, tohQueue, EXTI_Line1, EXTI1_IRQn);
+MRF24J40 mrf;
+MsgHandler msgHandler(mrf, todQueue, tohQueue, EXTI_Line1, EXTI1_IRQn);
 
 void handleInfoButtonInterrupt() {
 
@@ -30,15 +32,13 @@ void handleInfoButtonInterrupt() {
 
 
 	std::sprintf(msg.text,
-//			"txCount: %d\n"
-//			"rxCount: %d\n"
-//			"rxState: %d\n"
-//			"panId: %02x%02x\n"
-//			"sAddr: %02x%02x\n"
-//			"channelNo: %d\n"
+			"txCount: %d\n"
+			"rxCount: %d\n"
+			"panId: %04x\n"
+			"sAddr: %04x\n"
+			"channelNo: %d\n"
 			"mainCycles: %lu\n",
-//			txCount, rxCount, rxState, panId[1], panId[0], sAddr[1], sAddr[0], channelNo,
-			mainCycles);
+			mrf.getTXCount(), mrf.getRXCount(), mrf.getPanId(), mrf.getSAddr(), mrf.getChannel(), mainCycles);
 
 	msg.length = std::strlen(msg.text);
 

@@ -25,7 +25,7 @@ TOHMessage::CorrectSync::CorrectSync() {
 }
 
 
-TOHQueue::TOHQueue(UART& uart, PulseLED& txLed) : uart(uart), txLed(txLed), readIdx(0), writeIdx(0), txBufferPos(0) {
+TOHQueue::TOHQueue(UART& uart, PulseLED& txLed) : uart(uart), txLed(txLed) {
 }
 
 TOHQueue::~TOHQueue() {

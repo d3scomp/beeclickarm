@@ -11,7 +11,7 @@
 Button Button::info(GPIOA, GPIO_Pin_0, RCC_AHB1Periph_GPIOA, EXTI_Line0, EXTI_PortSourceGPIOA, EXTI_PinSource0, EXTI0_IRQn);
 
 Button::Button(GPIO_TypeDef* gpio, uint32_t pin, uint32_t clk, uint32_t extiLine, uint8_t extiPortSource, uint8_t extiPinSource, IRQn irqn) :
-		gpio(gpio), pin(pin), clk(clk), irqPreemptionPriority(0), irqSubPriority(0), extiLine(extiLine), extiPortSource(extiPortSource), extiPinSource(extiPinSource), irqn(irqn) {
+		gpio(gpio), pin(pin), clk(clk), extiLine(extiLine), extiPortSource(extiPortSource), extiPinSource(extiPinSource), irqn(irqn) {
 }
 
 Button::~Button() {
