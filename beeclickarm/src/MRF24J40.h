@@ -13,7 +13,7 @@
 
 class MRF24J40 {
 public:
-	MRF24J40(LED recvLed, LED sendLed, uint32_t clkGPIO, uint32_t clkSPI, GPIO_TypeDef* gpioRST, GPIO_TypeDef* gpioCS, GPIO_TypeDef* gpioTXRX, SPI_TypeDef* spi, uint8_t afConfig,
+	MRF24J40(PulseLED recvLed, PulseLED sendLed, uint32_t clkGPIO, uint32_t clkSPI, GPIO_TypeDef* gpioRST, GPIO_TypeDef* gpioCS, GPIO_TypeDef* gpioTXRX, SPI_TypeDef* spi, uint8_t afConfig,
 			uint8_t pinSourceRST, uint8_t pinSourceCS, uint8_t pinSourceSCK, uint8_t pinSourceMISO, uint8_t pinSourceMOSI,
 			uint32_t pinRST, uint32_t pinCS, uint32_t pinSCK, uint32_t pinMISO, uint32_t pinMOSI);
 	~MRF24J40();
@@ -53,8 +53,8 @@ public:
 	}
 
 private:
-	LED recvLed;
-	LED sendLed;
+	PulseLED recvLed;
+	PulseLED sendLed;
 
 	uint8_t channel;
 	uint8_t panId[2];

@@ -18,13 +18,15 @@ LED outOfSyncLed(GPIOD, GPIO_Pin_14, RCC_AHB1Periph_GPIOD);
 LED mrfRecvLed(GPIOD, GPIO_Pin_13, RCC_AHB1Periph_GPIOD);
 LED mrfSendLed(GPIOD, GPIO_Pin_15, RCC_AHB1Periph_GPIOD);
 
-PulseLED rxtxPulseLed(rxtxLed, 5);
+PulseLED rxtxPulseLed(rxtxLed, 1);
+PulseLED mrfRecvPulseLed(mrfRecvLed, 1);
+PulseLED mrfSendPulseLed(mrfSendLed, 1);
 
 Button infoButton(GPIOA, GPIO_Pin_0, RCC_AHB1Periph_GPIOA, EXTI_Line0, EXTI_PortSourceGPIOA, EXTI_PinSource0, EXTI0_IRQn);
 
 // TODO: Redo
 Button mrfPktRX(GPIOC, GPIO_Pin_2, RCC_AHB1Periph_GPIOD, EXTI_Line2, EXTI_PortSourceGPIOD, EXTI_PinSource2, EXTI2_IRQn);
-MRF24J40 mrf(mrfRecvLed, mrfSendLed, RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_GPIOE, RCC_APB1Periph_SPI3, GPIOE, GPIOE, GPIOB, SPI3, GPIO_AF_SPI3,
+MRF24J40 mrf(mrfRecvPulseLed, mrfSendPulseLed, RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_GPIOE, RCC_APB1Periph_SPI3, GPIOE, GPIOE, GPIOB, SPI3, GPIO_AF_SPI3,
 		GPIO_PinSource4, GPIO_PinSource5, GPIO_PinSource3, GPIO_PinSource4, GPIO_PinSource5, GPIO_Pin_4, GPIO_Pin_5, GPIO_Pin_3, GPIO_Pin_4, GPIO_Pin_5);
 
 UART uart2(RCC_AHB1Periph_GPIOA, RCC_APB1Periph_USART2, GPIOA, USART2, GPIO_PinSource2, GPIO_PinSource3, GPIO_Pin_2, GPIO_Pin_3, GPIO_AF_USART2, USART2_IRQn);
