@@ -7,8 +7,6 @@
 
 #include <UART.h>
 
-UART UART::uart2(RCC_AHB1Periph_GPIOA, RCC_APB1Periph_USART2, GPIOA, USART2, GPIO_PinSource2, GPIO_PinSource3, GPIO_Pin_2, GPIO_Pin_3, GPIO_AF_USART2, USART2_IRQn);
-
 uint8_t UART::recv() {
 	return (uint8_t)USART_ReceiveData(usart);
 }
@@ -135,8 +133,8 @@ void UART::init() {
 
 	// Enable the USART2 Interrupt
 	nvicInitStruct.NVIC_IRQChannel = nvicIRQChannel;
-	nvicInitStruct.NVIC_IRQChannelPreemptionPriority = 0;
-	nvicInitStruct.NVIC_IRQChannelSubPriority = 1;
+	nvicInitStruct.NVIC_IRQChannelPreemptionPriority = irqPreemptionPriority;
+	nvicInitStruct.NVIC_IRQChannelSubPriority = irqSubPriority;
 	nvicInitStruct.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&nvicInitStruct);
 

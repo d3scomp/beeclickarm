@@ -6,30 +6,40 @@
  */
 
 #include "main.h"
-#include "UART.h"
-#include "LED.h"
-#include "Button.h"
-#include "TODQueue.h"
-#include "TOHQueue.h"
-#include "MsgHandler.h"
-#include "MRF24J40.h"
 
 #include <cstdio>
 
 uint32_t mainCycles;
 
-PulseLED rxtxLed = PulseLED(LED::rxtx, 5);
-TODQueue todQueue(UART::uart2, rxtxLed, LED::outOfSync);
-TOHQueue tohQueue(UART::uart2, rxtxLed);
-MRF24J40 mrf;
+Timer delayTimer(TIM6, RCC_APB1Periph_TIM6);
+
+LED rxtxLed(GPIOD, GPIO_Pin_12, RCC_AHB1Periph_GPIOD);
+LED outOfSyncLed(GPIOD, GPIO_Pin_14, RCC_AHB1Periph_GPIOD);
+LED mrfRecvLed(GPIOD, GPIO_Pin_13, RCC_AHB1Periph_GPIOD);
+LED mrfSendLed(GPIOD, GPIO_Pin_15, RCC_AHB1Periph_GPIOD);
+
+PulseLED rxtxPulseLed(rxtxLed, 5);
+
+Button infoButton(GPIOA, GPIO_Pin_0, RCC_AHB1Periph_GPIOA, EXTI_Line0, EXTI_PortSourceGPIOA, EXTI_PinSource0, EXTI0_IRQn);
+
+// TODO: Redo
+Button mrfPktRX(GPIOC, GPIO_Pin_2, RCC_AHB1Periph_GPIOD, EXTI_Line2, EXTI_PortSourceGPIOD, EXTI_PinSource2, EXTI2_IRQn);
+MRF24J40 mrf(mrfRecvLed, mrfSendLed, RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_GPIOE, RCC_APB1Periph_SPI3, GPIOE, GPIOE, GPIOB, SPI3, GPIO_AF_SPI3,
+		GPIO_PinSource4, GPIO_PinSource5, GPIO_PinSource3, GPIO_PinSource4, GPIO_PinSource5, GPIO_Pin_4, GPIO_Pin_5, GPIO_Pin_3, GPIO_Pin_4, GPIO_Pin_5);
+
+UART uart2(RCC_AHB1Periph_GPIOA, RCC_APB1Periph_USART2, GPIOA, USART2, GPIO_PinSource2, GPIO_PinSource3, GPIO_Pin_2, GPIO_Pin_3, GPIO_AF_USART2, USART2_IRQn);
+
+TODQueue todQueue(uart2, rxtxPulseLed, outOfSyncLed);
+TOHQueue tohQueue(uart2, rxtxPulseLed);
+
 MsgHandler msgHandler(mrf, todQueue, tohQueue, EXTI_Line1, EXTI1_IRQn);
+
 
 void handleInfoButtonInterrupt() {
 
 	TOHMessage::Info& msg = tohQueue.getCurrentMsgWrite().info;
 
 	msg.type = TOHMessage::Type::INFO;
-
 
 	std::sprintf(msg.text,
 			"txCount: %d\n"
@@ -38,39 +48,48 @@ void handleInfoButtonInterrupt() {
 			"sAddr: %04x\n"
 			"channelNo: %d\n"
 			"mainCycles: %lu\n",
-			mrf.getTXCount(), mrf.getRXCount(), mrf.getPanId(), mrf.getSAddr(), mrf.getChannel(), mainCycles);
+			mrf.getTXCount(), mrf.getRXCount(), mrf.readPANId(), mrf.readSAddr(), mrf.readChannel(), mainCycles);
 
 	msg.length = std::strlen(msg.text);
 
 	tohQueue.moveToNextMsgWrite();
 }
 
+void handleMRFPktRX() {
+	// TODO: Handle packet RX
+}
 
 int main(void)
 {
 	NVIC_SetPriorityGrouping(NVIC_PriorityGroup_2);	// 2 bits for pre-emption priority, 2 bits for non-preemptive subpriority
-	// TODO: Here comes MRF24J40 communication with priority (0,0)
-	UART::uart2.setPriority(1,0);
-	// TODO: Here comes MRF24J40 packet receive interrupt with priority (2,0)
-	Button::info.setPriority(2,1);
-	msgHandler.setPriority(2,2);
+	uart2.setPriority(0,0);
+	mrfPktRX.setPriority(1,0);
+	infoButton.setPriority(1,1);
+	msgHandler.setPriority(1,2);
 
 	/* Set SysTick to fire each 10ms */
 	RCC_ClocksTypeDef RCC_Clocks;
 	RCC_GetClocksFreq(&RCC_Clocks);
 	SysTick_Config(RCC_Clocks.HCLK_Frequency / 100);
 
-	LED::outOfSync.init();
-	LED::rxtx.init();
-	rxtxLed.init();
+	delayTimer.init();
 
-	UART::uart2.init();
+	outOfSyncLed.init();
+	rxtxLed.init();
+	mrfSendLed.init();
+	mrfRecvLed.init();
+	rxtxPulseLed.init();
+
+	uart2.init();
+	mrf.init();
 	tohQueue.init();
 	msgHandler.init();
 	todQueue.init();
-	Button::info.init();
+	infoButton.init();
+	mrfPktRX.init();
 
-	Button::info.setPressedListener([]{ handleInfoButtonInterrupt(); });
+	infoButton.setPressedListener(handleInfoButtonInterrupt);
+	mrfPktRX.setPressedListener(handleMRFPktRX);
 
 	NVIC_SystemLPConfig(NVIC_LP_SLEEPONEXIT, ENABLE);
 	while (1) {

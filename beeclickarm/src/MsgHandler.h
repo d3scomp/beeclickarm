@@ -22,6 +22,7 @@ public:
 	void setPriority(uint8_t irqPreemptionPriority, uint8_t irqSubPriority);
 	void init();
 
+	void runInterruptHandler();
 private:
 	MRF24J40& mrf;
 	TODQueue& todQueue;
@@ -37,14 +38,7 @@ private:
 
 	void moveToNextTODMsg();
 
-	static MsgHandler* runListener;
-	static void runInterruptHandler();
-
-	friend void EXTI1_IRQHandler();
-
 	static std::function<void(MsgHandler*)> msgHandlers[static_cast<int>(TODMessage::Type::count)];
-
-	void run();
 
 	void handleSync();
 	void handleSendPacket();

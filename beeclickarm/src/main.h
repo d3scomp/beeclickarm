@@ -10,6 +10,22 @@
 
 #include "stm32f4xx.h"
 
+#include "UART.h"
+#include "LED.h"
+#include "Button.h"
+#include "TODQueue.h"
+#include "TOHQueue.h"
+#include "MsgHandler.h"
+#include "MRF24J40.h"
+#include "Timer.h"
+
 extern uint32_t mainCycles;
+
+extern Button infoButton;
+extern Button mrfPktRX;
+extern UART uart2;
+extern MsgHandler msgHandler;
+extern Timer delayTimer;
+
 
 #endif /* MAIN_H_ */

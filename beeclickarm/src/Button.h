@@ -13,9 +13,10 @@
 
 class Button {
 public:
-	typedef std::function<void()> Listener;
+	Button(GPIO_TypeDef* gpio, uint32_t pin, uint32_t clk, uint32_t extiLine, uint8_t extiPortSource, uint8_t extiPinSource, IRQn irqn);
+	~Button();
 
-	static Button info;
+	typedef std::function<void()> Listener;
 
 	bool isPressed();
 	void setPressedListener(Listener pressedListener);
@@ -23,13 +24,9 @@ public:
 	void setPriority(uint8_t irqPreemptionPriority, uint8_t irqSubPriority);
 	void init();
 
-private:
-	Button(GPIO_TypeDef* gpio, uint32_t pin, uint32_t clk, uint32_t extiLine, uint8_t extiPortSource, uint8_t extiPinSource, IRQn irqn);
-	~Button();
-
-	friend void EXTI0_IRQHandler();
 	void pressedInterruptHandler();
 
+private:
 	GPIO_TypeDef* gpio;
 	uint32_t pin;
 	uint32_t clk;

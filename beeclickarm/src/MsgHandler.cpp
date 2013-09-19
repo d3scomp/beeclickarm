@@ -8,8 +8,6 @@
 #include "MsgHandler.h"
 #include <cstdio>
 
-MsgHandler* MsgHandler::runListener;
-
 MsgHandler::MsgHandler(MRF24J40 &mrf, TODQueue& todQueue, TOHQueue& tohQueue, uint32_t extiLine, IRQn irqn) :
 		mrf(mrf), todQueue(todQueue), tohQueue(tohQueue), irqPreemptionPriority(0), irqSubPriority(0), extiLine(extiLine), irqn(irqn) {
 }
@@ -23,7 +21,6 @@ void MsgHandler::setPriority(uint8_t irqPreemptionPriority, uint8_t irqSubPriori
 }
 
 void MsgHandler::init() {
-	runListener = this;
 	todQueue.setMessageAvailableListener([&,this]{ this->messageAvailableListener(); });
 
 	EXTI_InitTypeDef EXTI_InitStructure;
@@ -38,8 +35,8 @@ void MsgHandler::init() {
 
 	// Enable and set Button EXTI Interrupt to the lowest priority
 	NVIC_InitStructure.NVIC_IRQChannel = irqn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = irqPreemptionPriority;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = irqSubPriority;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 
 	NVIC_Init(&NVIC_InitStructure);
@@ -59,11 +56,6 @@ void MsgHandler::moveToNextTODMsg() {
 	__enable_irq();
 }
 
-void MsgHandler::runInterruptHandler() {
-	assert_param(runListener);
-	runListener->run();
-}
-
 std::function<void(MsgHandler*)> MsgHandler::msgHandlers[static_cast<int>(TODMessage::Type::count)] {
 	std::mem_fn(&MsgHandler::handleSync),
 	std::mem_fn(&MsgHandler::handleSendPacket),
@@ -71,7 +63,7 @@ std::function<void(MsgHandler*)> MsgHandler::msgHandlers[static_cast<int>(TODMes
 	std::mem_fn(&MsgHandler::handleSetAddr)
 };
 
-void MsgHandler::run() {
+void MsgHandler::runInterruptHandler() {
 	int msgTypeOrd = static_cast<int>(todQueue.getCurrentMsgRead().type);
 	assert_param(msgTypeOrd >= 0 || msgTypeOrd < static_cast<int>(TODMessage::Type::count));
 
@@ -117,7 +109,8 @@ void MsgHandler::handleSetChannel() {
 void MsgHandler::handleSetAddr() {
 	TODMessage::SetAddr& inMsg = todQueue.getCurrentMsgRead().setAddr;
 
-	mrf.setAddr(inMsg.panId, inMsg.sAddr);
+	mrf.setPANId(inMsg.panId);
+	mrf.setSAddr(inMsg.sAddr);
 
 	TOHMessage::AddrSet& outMsg = tohQueue.getCurrentMsgWrite().addrSet;
 	outMsg.type = TOHMessage::Type::ADDR_SET;

@@ -15,10 +15,10 @@
 
 class UART {
 public:
-	typedef std::function<void()> Listener;
+	UART(uint32_t clkGPIO, uint32_t clkUSART, GPIO_TypeDef* gpio, USART_TypeDef* usart, uint16_t pinSourceTX, uint16_t pinSourceRX, uint32_t pinTX, uint32_t pinRX, uint8_t afConfig, uint8_t nvicIRQChannel);
+	~UART();
 
-	static UART uart2;
-	friend void USART2_IRQHandler();
+	typedef std::function<void()> Listener;
 
 	void setPriority(uint8_t irqPreemptionPriority, uint8_t irqSubPriority);
 	void init();
@@ -39,13 +39,9 @@ public:
 	void disableRecvEvents();
 	void setRecvListener(Listener recvListener);
 
-private:
-	// TODO: Add priorities
-	UART(uint32_t clkGPIO, uint32_t clkUSART, GPIO_TypeDef* gpio, USART_TypeDef* usart, uint16_t pinSourceTX, uint16_t pinSourceRX, uint32_t pinTX, uint32_t pinRX, uint8_t afConfig, uint8_t nvicIRQChannel);
-	~UART();
-
 	void txrxInterruptHandler();
 
+private:
 	uint32_t clkGPIO, clkUSART;
 	GPIO_TypeDef* gpio;
 	USART_TypeDef* usart;

@@ -7,9 +7,6 @@
 
 #include "Button.h"
 
-
-Button Button::info(GPIOA, GPIO_Pin_0, RCC_AHB1Periph_GPIOA, EXTI_Line0, EXTI_PortSourceGPIOA, EXTI_PinSource0, EXTI0_IRQn);
-
 Button::Button(GPIO_TypeDef* gpio, uint32_t pin, uint32_t clk, uint32_t extiLine, uint8_t extiPortSource, uint8_t extiPinSource, IRQn irqn) :
 		gpio(gpio), pin(pin), clk(clk), extiLine(extiLine), extiPortSource(extiPortSource), extiPinSource(extiPinSource), irqn(irqn) {
 }
@@ -23,7 +20,7 @@ void Button::setPriority(uint8_t irqPreemptionPriority, uint8_t irqSubPriority) 
 }
 
 void Button::init() {
-	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitTypeDef gpioInitStruct;
 	EXTI_InitTypeDef EXTI_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
 
@@ -32,10 +29,10 @@ void Button::init() {
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
 
 	/* Configure Button pin as input */
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	GPIO_InitStructure.GPIO_Pin = pin;
-	GPIO_Init(gpio, &GPIO_InitStructure);
+	gpioInitStruct.GPIO_Mode = GPIO_Mode_IN;
+	gpioInitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	gpioInitStruct.GPIO_Pin = pin;
+	GPIO_Init(gpio, &gpioInitStruct);
 
 	SYSCFG_EXTILineConfig(extiPortSource, extiPinSource);
 
@@ -48,8 +45,8 @@ void Button::init() {
 
 	/* Enable and set Button EXTI Interrupt to the lowest priority */
 	NVIC_InitStructure.NVIC_IRQChannel = irqn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x0F;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0F;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = irqPreemptionPriority;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = irqSubPriority;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 
 	NVIC_Init(&NVIC_InitStructure);
@@ -65,10 +62,10 @@ void Button::setPressedListener(Listener pressedListener) {
 }
 
 void Button::pressedInterruptHandler() {
+	EXTI_ClearITPendingBit(extiLine);
+
 	if (pressedListener) {
 		pressedListener();
 	}
-
-	EXTI_ClearITPendingBit(extiLine);
 }
 

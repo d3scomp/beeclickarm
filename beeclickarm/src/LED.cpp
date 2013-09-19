@@ -7,11 +7,6 @@
 
 #include "LED.h"
 
-LED LED::rxtx(GPIOD, GPIO_Pin_12, RCC_AHB1Periph_GPIOD);
-LED LED::outOfSync(GPIOD, GPIO_Pin_14, RCC_AHB1Periph_GPIOD);
-LED LED::rfRecv(GPIOD, GPIO_Pin_13, RCC_AHB1Periph_GPIOD);
-LED LED::rfSend(GPIOD, GPIO_Pin_15, RCC_AHB1Periph_GPIOD);
-
 LED::LED(GPIO_TypeDef* gpio, uint32_t pin, uint32_t clk) :	gpio(gpio), pin(pin), clk(clk) {
 }
 
@@ -19,18 +14,18 @@ LED::~LED() {
 }
 
 void LED::init() {
-	GPIO_InitTypeDef  GPIO_InitStructure;
+	GPIO_InitTypeDef  gpioInitStruct;
 
 	/* Enable the GPIO_LED Clock */
 	RCC_AHB1PeriphClockCmd(clk, ENABLE);
 
 	/* Configure the GPIO_LED pin */
-	GPIO_InitStructure.GPIO_Pin = pin;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_Init(gpio, &GPIO_InitStructure);
+	gpioInitStruct.GPIO_Pin = pin;
+	gpioInitStruct.GPIO_Mode = GPIO_Mode_OUT;
+	gpioInitStruct.GPIO_OType = GPIO_OType_PP;
+	gpioInitStruct.GPIO_PuPd = GPIO_PuPd_UP;
+	gpioInitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(gpio, &gpioInitStruct);
 }
 
 void LED::on() {

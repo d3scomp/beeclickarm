@@ -1,10 +1,8 @@
 #include "stm32f4xx_it.h"
 
 #include "main.h"
-#include "UART.h"
-#include "Button.h"
 #include "LED.h"
-#include "MsgHandler.h"
+
 
 /** @addtogroup Template_Project
  * @{
@@ -119,7 +117,7 @@ void SysTick_Handler(void) {
  * @retval None
  */
 void USART2_IRQHandler(void) {
-	UART::uart2.txrxInterruptHandler();
+	uart2.txrxInterruptHandler();
 }
 
 /**
@@ -128,7 +126,7 @@ void USART2_IRQHandler(void) {
  * @retval None
  */
 void EXTI0_IRQHandler(void) {
-	Button::info.pressedInterruptHandler();
+	infoButton.pressedInterruptHandler();
 }
 
 /**
@@ -137,7 +135,16 @@ void EXTI0_IRQHandler(void) {
  * @retval None
  */
 void EXTI1_IRQHandler(void) {
-	MsgHandler::runInterruptHandler();
+	msgHandler.runInterruptHandler();
+}
+
+/**
+ * @brief  This function handles EXTI1_IRQ Handler.
+ * @param  None
+ * @retval None
+ */
+void EXTI2_IRQHandler(void) {
+	mrfPktRX.pressedInterruptHandler();
 }
 
 /**

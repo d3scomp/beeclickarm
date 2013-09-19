@@ -17,6 +17,7 @@ SRCS +=	${SRC_DIR}/TODQueue.cpp
 SRCS +=	${SRC_DIR}/TOHQueue.cpp 
 SRCS +=	${SRC_DIR}/MsgHandler.cpp
 SRCS +=	${SRC_DIR}/MRF24J40.cpp
+SRCS +=	${SRC_DIR}/Timer.cpp
 SRCS +=	${SRC_DIR}/stm32f4xx_it.cpp 
 SRCS +=	${SRC_DIR}/syscalls.c
 SRCS +=	${DISCOVERY_DIR}/system_stm32f4xx.c
@@ -26,6 +27,8 @@ SRCS +=	${PERIPH_DIR}/src/stm32f4xx_exti.c
 SRCS +=	${PERIPH_DIR}/src/stm32f4xx_gpio.c
 SRCS +=	${PERIPH_DIR}/src/stm32f4xx_syscfg.c
 SRCS +=	${PERIPH_DIR}/src/stm32f4xx_usart.c
+SRCS +=	${PERIPH_DIR}/src/stm32f4xx_spi.c
+SRCS +=	${PERIPH_DIR}/src/stm32f4xx_tim.c
 SRCS +=	${PERIPH_DIR}/src/misc.c
 
 #DEFS = -DUSE_STDPERIPH_DRIVER -DSTM32F4XX -DMANGUSTA_DISCOVERY -DUSE_USB_OTG_FS -DHSE_VALUE=8000000

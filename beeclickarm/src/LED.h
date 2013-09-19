@@ -13,19 +13,14 @@
 
 class LED {
 public:
-	static LED rxtx;
-	static LED outOfSync;
-	static LED rfRecv;
-	static LED rfSend;
+	LED(GPIO_TypeDef* gpio, uint32_t pin, uint32_t clk);
+	~LED();
 
 	void on();
 	void off();
 	void init();
 
 private:
-	LED(GPIO_TypeDef* gpio, uint32_t pin, uint32_t clk);
-	~LED();
-
 	GPIO_TypeDef* gpio;
 	uint32_t pin;
 	uint32_t clk;
@@ -39,6 +34,8 @@ public:
 	void pulse();
 	void init();
 
+	static void tickInterruptHandler();
+
 private:
 	LED& led;
 	int minimalOnTimeTicks;
@@ -47,9 +44,6 @@ private:
 	void tick();
 
 	static std::list<PulseLED*> tickListeners;
-	static void tickInterruptHandler();
-
-	friend void SysTick_Handler();
 };
 
 #endif /* LED_H_ */
