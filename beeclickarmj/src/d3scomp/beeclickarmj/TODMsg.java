@@ -50,7 +50,7 @@ abstract class TODMsg {
 		}
 		
 		int getSize() {
-			return typeSize + 4 + data.length;
+			return typeSize + 5 + data.length;
 		}
 	}
 

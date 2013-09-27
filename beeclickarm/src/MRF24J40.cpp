@@ -79,7 +79,7 @@ void MRF24J40::init() {
 
 	/* Configure INT pin as input */
 	gpioInitStruct.GPIO_Mode = GPIO_Mode_IN;
-	gpioInitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	gpioInitStruct.GPIO_PuPd = GPIO_PuPd_UP;
 	gpioInitStruct.GPIO_Pin = props.pinINT;
 	GPIO_Init(props.gpioINT, &gpioInitStruct);
 
@@ -88,7 +88,7 @@ void MRF24J40::init() {
 	/* Configure INT EXTI line */
 	EXTI_InitStructure.EXTI_Line = props.extiLineINT;
 	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
-	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
+	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Falling;
 	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
 	EXTI_Init(&EXTI_InitStructure);
 
@@ -113,7 +113,7 @@ void MRF24J40::interruptHandler() {
 	if (intStat & 0x01) { // TXNIF
 		if (broadcastCompleteListener) {
 			uint8_t txStat = readShort(TXSTAT);
-			broadcastCompleteListener(txStat & 0x01);
+			broadcastCompleteListener(!(txStat & 0x01));
 		}
 	}
 
@@ -128,6 +128,9 @@ void MRF24J40::setRecvListener(RecvListener recvListener) {
 	this->recvListener = recvListener;
 }
 
+void MRF24J40::setBroadcastCompleteListener(BroadcastCompleteListener broadcastCompleteListener) {
+	this->broadcastCompleteListener = broadcastCompleteListener;
+}
 
 void MRF24J40::reset() {
 	// Setting RESET# low creates the reset condition
@@ -283,30 +286,6 @@ uint8_t MRF24J40::readShort(uint8_t addr) {
 	return result;
 }
 
-void MRF24J40::setBroadcastCompleteListener(
-		BroadcastCompleteListener broadcastCompleteListener) {
-}
-
-void MRF24J40::recvPacket(uint8_t (&data)[TOHMessage::MAX_RF_PACKET_LENGTH], uint8_t& dataLength, uint8_t (&fcs)[2], uint8_t& lqi, uint8_t& rssi) {
-	writeShort(BBREG1, 0x04); // Disable RX
-	dataLength = readLong(RXFIFO) - 2; // Read length
-
-	for (int idx = 0; idx < dataLength; idx++) {
-		data[idx] = readLong(RXFIFO + 1 + idx);
-	}
-
-	// TODO: Try to enable RX sooner - e.g. after 10 received packets
-	writeShort(BBREG1, 0x00); // Enable RX
-
-	// TODO: Parse header and return it as distinct from data payload
-
-	fcs[0] = readLong(RXFIFO + 1 + dataLength);
-	fcs[1] = readLong(RXFIFO + 1 + dataLength + 1);
-	lqi = readLong(RXFIFO + 1 + dataLength + 2);
-	rssi = readLong(RXFIFO + 1 + dataLength + 2);
-}
-
-
 uint8_t MRF24J40::readLong(uint16_t addr) {
 	assert_param(addr < 0x400);
 
@@ -382,12 +361,12 @@ uint16_t MRF24J40::readSAddr() {
 	return readShort(SADRL) | (readShort(SADRH) << 8);
 }
 
-void MRF24J40::broadcastPacket(uint8_t* data, uint8_t length) {
+void MRF24J40::broadcastPacket(uint8_t* data, uint8_t dataLength) {
 
 	int txReg = TXNFIFO;
 
 	writeLong(txReg++, 7); // Header length
-	writeLong(txReg++, 7 + length); // Frame length
+	writeLong(txReg++, 7 + dataLength); // Frame length
 
 	// Frame Control (order low-byte, high-byte; MSb)
 	// =============================================
@@ -411,7 +390,7 @@ void MRF24J40::broadcastPacket(uint8_t* data, uint8_t length) {
 	writeLong(txReg++, sAddr[0]); // Source Address (low)
 	writeLong(txReg++, sAddr[1]); // Source Address (high)
 
-	for (int idx = 0; idx < length; idx++) {
+	for (int idx = 0; idx < dataLength; idx++) {
 		writeLong(txReg++, data[idx]);
 	}
 
@@ -419,4 +398,26 @@ void MRF24J40::broadcastPacket(uint8_t* data, uint8_t length) {
 
 	txCount++;
 }
+
+void MRF24J40::recvPacket(uint8_t (&data)[TOHMessage::MAX_RF_PACKET_LENGTH], uint8_t& dataLength, uint8_t (&fcs)[2], uint8_t& lqi, uint8_t& rssi) {
+	writeShort(BBREG1, 0x04); // Disable RX
+	dataLength = readLong(RXFIFO) - 2; // Read length
+
+	for (int idx = 0; idx < dataLength; idx++) {
+		data[idx] = readLong(RXFIFO + 1 + idx);
+	}
+
+	// TODO: Try to enable RX sooner - e.g. after 10 received packets
+	writeShort(BBREG1, 0x00); // Enable RX
+
+	// TODO: Parse header and return it as distinct from data payload
+
+	fcs[0] = readLong(RXFIFO + 1 + dataLength);
+	fcs[1] = readLong(RXFIFO + 1 + dataLength + 1);
+	lqi = readLong(RXFIFO + 1 + dataLength + 2);
+	rssi = readLong(RXFIFO + 1 + dataLength + 2);
+
+	rxCount++;
+}
+
 

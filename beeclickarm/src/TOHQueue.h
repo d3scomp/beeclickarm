@@ -37,8 +37,8 @@ public:
 
 	struct PacketSent {
 		Type type;
-		uint8_t status; // 0 - OK, 1 - error
 		uint8_t seq[4];
+		uint8_t status; // 0 - OK, 1 - error
 	};
 
 	struct ChannelSet {

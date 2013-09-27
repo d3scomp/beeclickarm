@@ -66,7 +66,7 @@ public:
 	void setSAddr(uint8_t sAddr[2]);
 	uint16_t readSAddr();
 
-	void broadcastPacket(uint8_t *data, uint8_t length);
+	void broadcastPacket(uint8_t *data, uint8_t dataLength);
 	void recvPacket(uint8_t (&data)[TOHMessage::MAX_RF_PACKET_LENGTH], uint8_t& dataLength, uint8_t (&fcs)[2], uint8_t& lqi, uint8_t& rssi);
 
 

@@ -72,7 +72,7 @@ void MsgHandler::runInterruptHandler() {
 
 	waitOnReturn();
 
-	if (todQueue.isMsgReadAvailable()) {
+	if (!isSendPacketInProgress && todQueue.isMsgReadAvailable()) {
 		wakeup();
 	}
 }
@@ -92,8 +92,6 @@ void MsgHandler::handleSendPacket() {
 
 		isSendPacketInProgress = true;
 	}
-
-	waitOnReturn();
 }
 
 void MsgHandler::broadcastCompleteListener(bool isSuccessful) {
@@ -110,10 +108,7 @@ void MsgHandler::broadcastCompleteListener(bool isSuccessful) {
 	todQueue.moveToNextMsgRead();
 
 	isSendPacketInProgress = false;
-
-	if (todQueue.isMsgReadAvailable()) {
-		wakeup();
-	}
+	wakeup();
 }
 
 void MsgHandler::recvListener() {
