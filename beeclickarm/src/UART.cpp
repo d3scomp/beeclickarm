@@ -8,32 +8,32 @@
 #include <UART.h>
 
 uint8_t UART::recv() {
-	return (uint8_t)USART_ReceiveData(usart);
+	return (uint8_t)USART_ReceiveData(props.usart);
 }
 
 void UART::send(uint8_t ch) {
-	USART_SendData(usart, ch);
+	USART_SendData(props.usart, ch);
 }
 
 bool UART::canSend() {
-	return USART_GetFlagStatus(usart, USART_FLAG_TXE) == SET;
+	return USART_GetFlagStatus(props.usart, USART_FLAG_TXE) == SET;
 }
 
 bool UART::canRecv() {
-	return USART_GetFlagStatus(usart, USART_FLAG_RXNE) == SET;
+	return USART_GetFlagStatus(props.usart, USART_FLAG_RXNE) == SET;
 }
 
 bool UART::isSendComplete() {
-	return USART_GetFlagStatus(usart, USART_FLAG_TC) == SET;
+	return USART_GetFlagStatus(props.usart, USART_FLAG_TC) == SET;
 }
 
 bool UART::isBreakOrError() {
-	return usart->SR & (USART_FLAG_FE | USART_FLAG_ORE | USART_FLAG_PE);
+	return props.usart->SR & (USART_FLAG_FE | USART_FLAG_ORE | USART_FLAG_PE);
 }
 
 void UART::clearBreakOrError() {
-	volatile int32_t dummy = usart->SR;
-	usart->DR = 0;
+	volatile int32_t dummy = props.usart->SR;
+	props.usart->DR = 0;
 }
 
 void UART::enableSendEvents() {
@@ -61,13 +61,13 @@ void UART::setRecvListener(Listener recvReadyListener) {
 }
 
 void UART::txrxInterruptHandler() {
-	if (USART_GetITStatus(usart, USART_IT_TXE)) {
+	if (USART_GetITStatus(props.usart, USART_IT_TXE)) {
 		if (sendListener) {
 			sendListener();
 		}
 	}
 
-	if (USART_GetITStatus(usart, USART_IT_RXNE)) {
+	if (USART_GetITStatus(props.usart, USART_IT_RXNE)) {
 		if (recvListener) {
 			recvListener();
 		}
@@ -75,21 +75,11 @@ void UART::txrxInterruptHandler() {
 }
 
 
-UART::UART(uint32_t clkGPIO, uint32_t clkUSART, GPIO_TypeDef* gpio, USART_TypeDef* usart, uint16_t pinSourceTX, uint16_t pinSourceRX, uint32_t pinTX, uint32_t pinRX, uint8_t afConfig, uint8_t nvicIRQChannel):
-		clkGPIO(clkGPIO),
-		clkUSART(clkUSART),
-		gpio(gpio),
-		usart(usart),
-		pinSourceTX(pinSourceTX),
-		pinSourceRX(pinSourceRX),
-		pinTX(pinTX),
-		pinRX(pinRX),
-		afConfig(afConfig),
-		nvicIRQChannel(nvicIRQChannel) {
+UART::UART(Properties& initProps) : props(initProps) {
 }
 
 UART::~UART() {
-	USART_DeInit(usart);
+	USART_DeInit(props.usart);
 }
 
 
@@ -100,22 +90,22 @@ void UART::setPriority(uint8_t irqPreemptionPriority, uint8_t irqSubPriority) {
 
 
 void UART::init() {
-	RCC_AHB1PeriphClockCmd(clkGPIO, ENABLE);
+	RCC_AHB1PeriphClockCmd(props.clkGPIO, ENABLE);
 
-	GPIO_PinAFConfig(gpio, pinSourceTX, afConfig); // alternative function USARTx_TX
-	GPIO_PinAFConfig(gpio, pinSourceRX, afConfig); // alternative function USARTx_RX
+	GPIO_PinAFConfig(props.gpio, props.pinSourceTX, props.afConfig); // alternative function USARTx_TX
+	GPIO_PinAFConfig(props.gpio, props.pinSourceRX, props.afConfig); // alternative function USARTx_RX
 
 	GPIO_InitTypeDef gpioInitStruct;
-	gpioInitStruct.GPIO_Pin = pinTX | pinRX;
+	gpioInitStruct.GPIO_Pin = props.pinTX | props.pinRX;
 	gpioInitStruct.GPIO_Mode = GPIO_Mode_AF;
 	gpioInitStruct.GPIO_Speed = GPIO_Speed_50MHz;
 	gpioInitStruct.GPIO_OType = GPIO_OType_PP;
 	gpioInitStruct.GPIO_PuPd = GPIO_PuPd_UP;
 
-	GPIO_Init(gpio, &gpioInitStruct);
+	GPIO_Init(props.gpio, &gpioInitStruct);
 
 
-	RCC_APB1PeriphClockCmd(clkUSART, ENABLE);
+	props.clkUSARTCmdFun(props.clkUSART, ENABLE);
 
 	USART_InitTypeDef usartInitStruct;
 	usartInitStruct.USART_BaudRate = 921600;
@@ -126,19 +116,18 @@ void UART::init() {
 	usartInitStruct.USART_Mode = USART_Mode_Tx | USART_Mode_Rx;
 	usartInitStruct.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
 
-	USART_Init(usart, &usartInitStruct);
+	USART_Init(props.usart, &usartInitStruct);
 
 
 	NVIC_InitTypeDef nvicInitStruct;
 
 	// Enable the USART2 Interrupt
-	nvicInitStruct.NVIC_IRQChannel = nvicIRQChannel;
+	nvicInitStruct.NVIC_IRQChannel = props.nvicIRQChannel;
 	nvicInitStruct.NVIC_IRQChannelPreemptionPriority = irqPreemptionPriority;
 	nvicInitStruct.NVIC_IRQChannelSubPriority = irqSubPriority;
 	nvicInitStruct.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&nvicInitStruct);
 
-
-	USART_Cmd(usart, ENABLE);
+	USART_Cmd(props.usart, ENABLE);
 }
 

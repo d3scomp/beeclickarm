@@ -7,7 +7,7 @@
 
 #include "LED.h"
 
-LED::LED(GPIO_TypeDef* gpio, uint32_t pin, uint32_t clk) :	gpio(gpio), pin(pin), clk(clk) {
+LED::LED(Properties& initProps) : props(initProps) {
 }
 
 LED::~LED() {
@@ -17,23 +17,23 @@ void LED::init() {
 	GPIO_InitTypeDef  gpioInitStruct;
 
 	/* Enable the GPIO_LED Clock */
-	RCC_AHB1PeriphClockCmd(clk, ENABLE);
+	RCC_AHB1PeriphClockCmd(props.clk, ENABLE);
 
 	/* Configure the GPIO_LED pin */
-	gpioInitStruct.GPIO_Pin = pin;
+	gpioInitStruct.GPIO_Pin = props.pin;
 	gpioInitStruct.GPIO_Mode = GPIO_Mode_OUT;
 	gpioInitStruct.GPIO_OType = GPIO_OType_PP;
 	gpioInitStruct.GPIO_PuPd = GPIO_PuPd_UP;
 	gpioInitStruct.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_Init(gpio, &gpioInitStruct);
+	GPIO_Init(props.gpio, &gpioInitStruct);
 }
 
 void LED::on() {
-	gpio->BSRRL = pin;
+	props.gpio->BSRRL = props.pin;
 }
 
 void LED::off() {
-	gpio->BSRRH = pin;
+	props.gpio->BSRRH = props.pin;
 }
 
 

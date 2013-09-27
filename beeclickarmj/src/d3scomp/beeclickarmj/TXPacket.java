@@ -24,4 +24,10 @@ public class TXPacket {
 	public byte[] getData() {
 		return data;
 	}
+	
+	public synchronized void waitForNotPendingState() throws InterruptedException {
+		while (status == Status.PENDING) {
+			wait();
+		}
+	}
 }

@@ -85,7 +85,7 @@ abstract class TOHMsg {
 		static final int MAX_DATA_LENGTH = 128;
 		int rssi;
 		int lqi;
-		byte fcs;
+		int fcs;
 		byte data[];
 		
 		RecvPacket() {
@@ -100,14 +100,14 @@ abstract class TOHMsg {
 			
 			rssi = buf.get() & 0xFF;
 			lqi = buf.get() & 0xFF;
-			fcs = buf.get();
+			fcs = ((buf.get() & 0xFF) << 0) | ((buf.get() & 0xFF) << 8);
 			
 			data = new byte[length];
 			buf.get(data);
 		}
 		
 		static int getExpectedSizeLowerBound(ByteBuffer buf) {
-			return typeSize + 4 + (buf.position() == 1 ? 0 : (buf.get(1) & 0xFF));
+			return typeSize + 5 + (buf.position() == 1 ? 0 : (buf.get(1) & 0xFF));
 		}
 	}
 

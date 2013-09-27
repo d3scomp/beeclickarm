@@ -13,7 +13,18 @@
 
 class Button {
 public:
-	Button(GPIO_TypeDef* gpio, uint32_t pin, uint32_t clk, uint32_t extiLine, uint8_t extiPortSource, uint8_t extiPinSource, IRQn irqn);
+	struct Properties {
+		GPIO_TypeDef* gpio;
+		uint32_t pin;
+		uint32_t clk;
+
+		uint32_t extiLine;
+		uint8_t extiPortSource;
+		uint8_t extiPinSource;
+		IRQn irqn;
+	};
+
+	Button(Properties &initProps);
 	~Button();
 
 	typedef std::function<void()> Listener;
@@ -27,17 +38,10 @@ public:
 	void pressedInterruptHandler();
 
 private:
-	GPIO_TypeDef* gpio;
-	uint32_t pin;
-	uint32_t clk;
+	Properties props;
 
 	uint8_t irqPreemptionPriority;
 	uint8_t irqSubPriority;
-
-	uint32_t extiLine;
-	uint8_t extiPortSource;
-	uint8_t extiPinSource;
-	IRQn irqn;
 
 	Listener pressedListener;
 };

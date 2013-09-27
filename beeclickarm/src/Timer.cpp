@@ -7,14 +7,14 @@
 
 #include "Timer.h"
 
-Timer::Timer(TIM_TypeDef* tim, uint32_t clk) : tim(tim), clk(clk) {
+Timer::Timer(Properties& initProps) : props(initProps) {
 }
 
 Timer::~Timer() {
 }
 
 void Timer::init() {
-	RCC_APB1PeriphClockCmd(clk, ENABLE);
+	props.clkCmdFun(props.clk, ENABLE);
 
 	TIM_TimeBaseInitTypeDef timInitStruct;
 	timInitStruct.TIM_Prescaler = 82;
@@ -22,7 +22,7 @@ void Timer::init() {
 	timInitStruct.TIM_Period = 0xFFFF;
 	timInitStruct.TIM_ClockDivision = TIM_CKD_DIV1;
 	timInitStruct.TIM_RepetitionCounter = 0x00;
-	TIM_TimeBaseInit(tim, &timInitStruct);
+	TIM_TimeBaseInit(props.tim, &timInitStruct);
 
-	TIM_Cmd(tim, ENABLE);
+	TIM_Cmd(props.tim, ENABLE);
 }

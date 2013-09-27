@@ -13,7 +13,13 @@
 
 class LED {
 public:
-	LED(GPIO_TypeDef* gpio, uint32_t pin, uint32_t clk);
+	struct Properties {
+		GPIO_TypeDef* gpio;
+		uint32_t pin;
+		uint32_t clk;
+	};
+
+	LED(Properties& initProps);
 	~LED();
 
 	void on();
@@ -21,9 +27,7 @@ public:
 	void init();
 
 private:
-	GPIO_TypeDef* gpio;
-	uint32_t pin;
-	uint32_t clk;
+	Properties props;
 };
 
 class PulseLED {

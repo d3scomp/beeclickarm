@@ -15,6 +15,7 @@
 struct TOHMessage {
 public:
 	static constexpr auto MAX_INFO_TEXT_LENGTH = 255;
+	static constexpr auto MAX_RF_PACKET_LENGTH = TODMessage::MAX_RF_PACKET_LENGTH;
 
 	enum class Type : uint8_t {
 		SYNC, RECV_PACKET, PACKET_SENT, CHANNEL_SET, ADDR_SET, INFO, count
@@ -30,8 +31,8 @@ public:
 		uint8_t length;
 		uint8_t rssi;
 		uint8_t lqi;
-		uint8_t fcs;
-		uint8_t data[TODMessage::MAX_RF_PACKET_LENGTH];
+		uint8_t fcs[2];
+		uint8_t data[MAX_RF_PACKET_LENGTH];
 	};
 
 	struct PacketSent {

@@ -16,7 +16,12 @@
 
 class MsgHandler {
 public:
-	MsgHandler(MRF24J40 &mrf, TODQueue& todQueue, TOHQueue& tohQueue, uint32_t extiLine, IRQn irqn);
+	struct Properties {
+		uint32_t extiLine;
+		IRQn irqn;
+	};
+
+	MsgHandler(Properties& initProps, MRF24J40 &mrf, TODQueue& todQueue, TOHQueue& tohQueue);
 	~MsgHandler();
 
 	void setPriority(uint8_t irqPreemptionPriority, uint8_t irqSubPriority);
@@ -24,6 +29,8 @@ public:
 
 	void runInterruptHandler();
 private:
+	Properties props;
+
 	MRF24J40& mrf;
 	TODQueue& todQueue;
 	TOHQueue& tohQueue;
@@ -31,12 +38,12 @@ private:
 	uint8_t irqPreemptionPriority;
 	uint8_t irqSubPriority;
 
-	uint32_t extiLine;
-	IRQn irqn;
-
 	void messageAvailableListener();
+	void broadcastCompleteListener(bool isSuccessful);
+	void recvListener();
 
-	void moveToNextTODMsg();
+	inline void waitOnReturn();
+	inline void wakeup();
 
 	static std::function<void(MsgHandler*)> msgHandlers[static_cast<int>(TODMessage::Type::count)];
 
@@ -44,6 +51,8 @@ private:
 	void handleSendPacket();
 	void handleSetChannel();
 	void handleSetAddr();
+
+	bool isSendPacketInProgress;
 };
 
 #endif /* MSGHANDLER_H_ */

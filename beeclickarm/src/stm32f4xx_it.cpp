@@ -117,7 +117,7 @@ void SysTick_Handler(void) {
  * @retval None
  */
 void USART2_IRQHandler(void) {
-	uart2.txrxInterruptHandler();
+	uartTOHD.txrxInterruptHandler();
 }
 
 /**
@@ -139,12 +139,12 @@ void EXTI1_IRQHandler(void) {
 }
 
 /**
- * @brief  This function handles EXTI1_IRQ Handler.
+ * @brief  This function handles EXTI2_IRQ Handler.
  * @param  None
  * @retval None
  */
 void EXTI2_IRQHandler(void) {
-	mrfPktRX.pressedInterruptHandler();
+	mrf.interruptHandler();
 }
 
 /**

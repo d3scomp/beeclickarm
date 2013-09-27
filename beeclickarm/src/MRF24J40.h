@@ -10,16 +10,52 @@
 
 #include "stm32f4xx.h"
 #include "LED.h"
+#include "TOHQueue.h"
+#include <functional>
 
 class MRF24J40 {
 public:
-	MRF24J40(PulseLED recvLed, PulseLED sendLed, uint32_t clkGPIO, uint32_t clkSPI, GPIO_TypeDef* gpioRST, GPIO_TypeDef* gpioCS, GPIO_TypeDef* gpioTXRX, SPI_TypeDef* spi, uint8_t afConfig,
-			uint8_t pinSourceRST, uint8_t pinSourceCS, uint8_t pinSourceSCK, uint8_t pinSourceMISO, uint8_t pinSourceMOSI,
-			uint32_t pinRST, uint32_t pinCS, uint32_t pinSCK, uint32_t pinMISO, uint32_t pinMOSI);
+	struct Properties {
+		GPIO_TypeDef* gpioRST;
+		GPIO_TypeDef* gpioCS;
+		GPIO_TypeDef* gpioTXRX;
+		GPIO_TypeDef* gpioINT;
+		SPI_TypeDef* spi;
+		uint32_t pinRST;
+		uint32_t pinCS;
+		uint32_t pinSCK;
+		uint32_t pinMISO;
+		uint32_t pinMOSI;
+		uint32_t pinINT;
+		uint8_t pinSourceRST;
+		uint8_t pinSourceCS;
+		uint8_t pinSourceSCK;
+		uint8_t pinSourceMISO;
+		uint8_t pinSourceMOSI;
+		uint32_t clkGPIOs;
+		void (*clkSPICmdFun)(uint32_t periph, FunctionalState newState);
+		uint32_t clkSPI;
+		uint8_t afConfig;
+		uint32_t extiLineINT;
+		uint8_t extiPortSourceINT;
+		uint8_t extiPinSourceINT;
+		IRQn irqnINT;
+	};
+
+	typedef std::function<void()> RecvListener;
+	typedef std::function<void(bool)> BroadcastCompleteListener;
+
+	MRF24J40(Properties& initProps, PulseLED recvLed, PulseLED sendLed);
 	~MRF24J40();
 
-	void setPriority(uint8_t irqPreemptionPriority, uint8_t irqSubPriority);
 	void init();
+	void reset();
+
+	void interruptHandler();
+	void setRecvListener(RecvListener recvListener);
+	void setBroadcastCompleteListener(BroadcastCompleteListener broadcastCompleteListener);
+
+	void setPriority(uint8_t irqPreemptionPriority, uint8_t irqSubPriority);
 
 	void setChannel(uint8_t channel);
 	uint8_t readChannel();
@@ -30,7 +66,9 @@ public:
 	void setSAddr(uint8_t sAddr[2]);
 	uint16_t readSAddr();
 
-	void sendPacket(uint8_t *data, uint8_t length);
+	void broadcastPacket(uint8_t *data, uint8_t length);
+	void recvPacket(uint8_t (&data)[TOHMessage::MAX_RF_PACKET_LENGTH], uint8_t& dataLength, uint8_t (&fcs)[2], uint8_t& lqi, uint8_t& rssi);
+
 
 	uint8_t getChannel() const {
 		return channel;
@@ -53,6 +91,8 @@ public:
 	}
 
 private:
+	Properties props;
+
 	PulseLED recvLed;
 	PulseLED sendLed;
 
@@ -66,29 +106,13 @@ private:
 	uint8_t irqPreemptionPriority;
 	uint8_t irqSubPriority;
 
-	uint32_t clkGPIO;
-	uint32_t clkSPI;
-	GPIO_TypeDef* gpioRST;
-	GPIO_TypeDef* gpioCS;
-	GPIO_TypeDef* gpioTXRX;
-	SPI_TypeDef* spi;
-	uint8_t afConfig;
-	uint8_t pinSourceRST;
-	uint8_t pinSourceCS;
-	uint8_t pinSourceSCK;
-	uint8_t pinSourceMISO;
-	uint8_t pinSourceMOSI;
-	uint32_t pinRST;
-	uint32_t pinCS;
-	uint32_t pinSCK;
-	uint32_t pinMISO;
-	uint32_t pinMOSI;
+	RecvListener recvListener;
+	BroadcastCompleteListener broadcastCompleteListener;
 
 	void writeShort(uint8_t addr, uint8_t value);
 	void writeLong(uint16_t addr, uint8_t value);
 	uint8_t readShort(uint8_t addr);
 	uint8_t readLong(uint16_t addr);
-
 
 	/* short registers */
 	static constexpr uint8_t RXMCR = 0x00;

@@ -8,12 +8,7 @@
 #include "MRF24J40.h"
 #include "main.h"
 
-MRF24J40::MRF24J40(PulseLED recvLed, PulseLED sendLed, uint32_t clkGPIO, uint32_t clkSPI, GPIO_TypeDef* gpioRST, GPIO_TypeDef* gpioCS, GPIO_TypeDef* gpioTXRX, SPI_TypeDef* spi, uint8_t afConfig,
-		uint8_t pinSourceRST, uint8_t pinSourceCS, uint8_t pinSourceSCK, uint8_t pinSourceMISO, uint8_t pinSourceMOSI, uint32_t pinRST, uint32_t pinCS, uint32_t pinSCK, uint32_t pinMISO, uint32_t pinMOSI) :
-
-		recvLed(recvLed), sendLed(sendLed), clkGPIO(clkGPIO), clkSPI(clkSPI), gpioRST(gpioRST), gpioCS(gpioCS), gpioTXRX(gpioTXRX), spi(spi), afConfig(afConfig),
-		pinSourceRST(pinSourceRST), pinSourceCS(pinSourceCS), pinSourceSCK(pinSourceSCK), pinSourceMISO(pinSourceMISO), pinSourceMOSI(pinSourceMOSI),
-		pinRST(pinRST), pinCS(pinCS), pinSCK(pinSCK), pinMISO(pinMISO), pinMOSI(pinMOSI) {
+MRF24J40::MRF24J40(Properties& initProps, PulseLED recvLed, PulseLED sendLed) : props(initProps), recvLed(recvLed), sendLed(sendLed) {
 }
 
 MRF24J40::~MRF24J40() {
@@ -26,39 +21,39 @@ void MRF24J40::setPriority(uint8_t irqPreemptionPriority, uint8_t irqSubPriority
 
 void MRF24J40::init() {
 	// Enable the SPI clock
-	RCC_APB1PeriphClockCmd(clkSPI, ENABLE);
+	props.clkSPICmdFun(props.clkSPI, ENABLE);
 
 	// Enable GPIO clocks
-	RCC_AHB1PeriphClockCmd(clkGPIO, ENABLE);
+	RCC_AHB1PeriphClockCmd(props.clkGPIOs, ENABLE);
 
 	// Connect SPI pins to AF5
-	GPIO_PinAFConfig(gpioTXRX, pinSourceSCK, afConfig); // alternative function SPIx_SCK
-	GPIO_PinAFConfig(gpioTXRX, pinSourceMISO, afConfig); // alternative function SPIx_MISO
-	GPIO_PinAFConfig(gpioTXRX, pinSourceMOSI, afConfig); // alternative function SPIx_MOSI
+	GPIO_PinAFConfig(props.gpioTXRX, props.pinSourceSCK, props.afConfig); // alternative function SPIx_SCK
+	GPIO_PinAFConfig(props.gpioTXRX, props.pinSourceMISO, props.afConfig); // alternative function SPIx_MISO
+	GPIO_PinAFConfig(props.gpioTXRX, props.pinSourceMOSI, props.afConfig); // alternative function SPIx_MOSI
 
 	// GPIO Deinitialisation
 	GPIO_InitTypeDef gpioInitStruct;
 
-	gpioInitStruct.GPIO_Pin = pinSCK | pinMISO | pinMOSI;
+	gpioInitStruct.GPIO_Pin = props.pinSCK | props.pinMISO | props.pinMOSI;
 	gpioInitStruct.GPIO_Mode = GPIO_Mode_AF;
 	gpioInitStruct.GPIO_Speed = GPIO_Speed_50MHz;
 	gpioInitStruct.GPIO_OType = GPIO_OType_PP;
 	gpioInitStruct.GPIO_PuPd  = GPIO_PuPd_DOWN;
-	GPIO_Init(gpioTXRX, &gpioInitStruct);
+	GPIO_Init(props.gpioTXRX, &gpioInitStruct);
 
-	gpioInitStruct.GPIO_Pin = pinCS;
+	gpioInitStruct.GPIO_Pin = props.pinCS;
 	gpioInitStruct.GPIO_Mode = GPIO_Mode_OUT;
 	gpioInitStruct.GPIO_Speed = GPIO_Speed_50MHz;
 	gpioInitStruct.GPIO_OType = GPIO_OType_PP;
 	gpioInitStruct.GPIO_PuPd  = GPIO_PuPd_UP;
-	GPIO_Init(gpioCS, &gpioInitStruct);
+	GPIO_Init(props.gpioCS, &gpioInitStruct);
 
-	gpioInitStruct.GPIO_Pin = pinRST;
+	gpioInitStruct.GPIO_Pin = props.pinRST;
 	gpioInitStruct.GPIO_Mode = GPIO_Mode_OUT;
 	gpioInitStruct.GPIO_Speed = GPIO_Speed_50MHz;
 	gpioInitStruct.GPIO_OType = GPIO_OType_PP;
 	gpioInitStruct.GPIO_PuPd  = GPIO_PuPd_DOWN;
-	GPIO_Init(gpioRST, &gpioInitStruct);
+	GPIO_Init(props.gpioRST, &gpioInitStruct);
 
 	// SPI configuration
 	SPI_InitTypeDef  spiInitStruct;
@@ -71,23 +66,80 @@ void MRF24J40::init() {
 	spiInitStruct.SPI_NSS = SPI_NSS_Soft;
 	spiInitStruct.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_4;
 	spiInitStruct.SPI_FirstBit = SPI_FirstBit_MSB;
-	SPI_Init(spi, &spiInitStruct);
+	SPI_Init(props.spi, &spiInitStruct);
 
 	// Default (idle) CS state
-	GPIO_SetBits(gpioCS, pinCS);
+	GPIO_SetBits(props.gpioCS, props.pinCS);
 
+
+	EXTI_InitTypeDef EXTI_InitStructure;
+	NVIC_InitTypeDef NVIC_InitStructure;
+
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
+
+	/* Configure INT pin as input */
+	gpioInitStruct.GPIO_Mode = GPIO_Mode_IN;
+	gpioInitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	gpioInitStruct.GPIO_Pin = props.pinINT;
+	GPIO_Init(props.gpioINT, &gpioInitStruct);
+
+	SYSCFG_EXTILineConfig(props.extiPortSourceINT, props.extiPinSourceINT);
+
+	/* Configure INT EXTI line */
+	EXTI_InitStructure.EXTI_Line = props.extiLineINT;
+	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
+	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+	EXTI_Init(&EXTI_InitStructure);
+
+	/* Enable and set INT EXTI Interrupt to the given priority */
+	NVIC_InitStructure.NVIC_IRQChannel = props.irqnINT;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = irqPreemptionPriority;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = irqSubPriority;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+
+	NVIC_Init(&NVIC_InitStructure);
+
+	SPI_Cmd(props.spi, ENABLE);
+
+	reset();
+}
+
+void MRF24J40::interruptHandler() {
+	EXTI_ClearITPendingBit(props.extiLineINT);
+
+	uint8_t intStat = readShort(INTSTAT);
+
+	if (intStat & 0x01) { // TXNIF
+		if (broadcastCompleteListener) {
+			uint8_t txStat = readShort(TXSTAT);
+			broadcastCompleteListener(txStat & 0x01);
+		}
+	}
+
+	if (intStat & 0x08) { // RXIF
+		if (recvListener) {
+			recvListener();
+		}
+	}
+}
+
+void MRF24J40::setRecvListener(RecvListener recvListener) {
+	this->recvListener = recvListener;
+}
+
+
+void MRF24J40::reset() {
 	// Setting RESET# low creates the reset condition
-	GPIO_ResetBits(gpioRST, pinRST);
+	GPIO_ResetBits(props.gpioRST, props.pinRST);
 
 	delayTimer.uDelay(1000);
 
 	// Setting RESET# high removes the reset condition
-	GPIO_SetBits(gpioRST, pinRST);
+	GPIO_SetBits(props.gpioRST, props.pinRST);
 
 	delayTimer.uDelay(2000);
 
-
-	SPI_Cmd(spi, ENABLE);
 
 	/*
 	 * We don't use interrupt for the SPI communication. However we keep it here just for case it is needed.
@@ -170,37 +222,40 @@ void MRF24J40::init() {
 	writeShort(TXMCR, 0x1C);
 }
 
+
+//TODO: Try out to set TX only and user TXRX mode only for the last byte of read
+
 void MRF24J40::writeShort(uint8_t addr, uint8_t value) {
 	assert_param(addr < 0x40);
 
-	gpioCS->BSRRH = pinCS;
+	props.gpioCS->BSRRH = props.pinCS;
 
-	spi->DR = (addr << 1) | 0x01;
+	props.spi->DR = (addr << 1) | 0x01;
 
-	while (!(spi->SR & SPI_I2S_FLAG_TXE));
-	spi->DR = value;
+	while (!(props.spi->SR & SPI_I2S_FLAG_TXE));
+	props.spi->DR = value;
 
-	while (!(spi->SR & SPI_I2S_FLAG_TXE)); // BSY flag is set only after some delay, so it is compulsory to first wait for TXE, which ensures that BSY flag is set meanwhile
-	while (spi->SR & SPI_I2S_FLAG_BSY);
-	gpioCS->BSRRL = pinCS;
+	while (!(props.spi->SR & SPI_I2S_FLAG_TXE)); // BSY flag is set only after some delay, so it is compulsory to first wait for TXE, which ensures that BSY flag is set meanwhile
+	while (props.spi->SR & SPI_I2S_FLAG_BSY);
+	props.gpioCS->BSRRL = props.pinCS;
 }
 
 void MRF24J40::writeLong(uint16_t addr, uint8_t value) {
 	assert_param(addr < 0x400);
 
-	gpioCS->BSRRH = pinCS;
+	props.gpioCS->BSRRH = props.pinCS;
 
-	spi->DR = (addr >> 3) | 0x80;
+	props.spi->DR = (addr >> 3) | 0x80;
 
-	while (!(spi->SR & SPI_I2S_FLAG_TXE));
-	spi->DR = (addr << 5) | 0x10;
+	while (!(props.spi->SR & SPI_I2S_FLAG_TXE));
+	props.spi->DR = (addr << 5) | 0x10;
 
-	while (!(spi->SR & SPI_I2S_FLAG_TXE));
-	spi->DR = value;
+	while (!(props.spi->SR & SPI_I2S_FLAG_TXE));
+	props.spi->DR = value;
 
-	while (!(spi->SR & SPI_I2S_FLAG_TXE)); // BSY flag is set only after some delay, so it is compulsory to first wait for TXE, which ensures that BSY flag is set meanwhile
-	while (spi->SR & SPI_I2S_FLAG_BSY);
-	gpioCS->BSRRL = pinCS;
+	while (!(props.spi->SR & SPI_I2S_FLAG_TXE)); // BSY flag is set only after some delay, so it is compulsory to first wait for TXE, which ensures that BSY flag is set meanwhile
+	while (props.spi->SR & SPI_I2S_FLAG_BSY);
+	props.gpioCS->BSRRL = props.pinCS;
 }
 
 uint8_t MRF24J40::readShort(uint8_t addr) {
@@ -208,57 +263,80 @@ uint8_t MRF24J40::readShort(uint8_t addr) {
 
 	uint8_t result;
 
-	gpioCS->BSRRH = pinCS;
+	props.gpioCS->BSRRH = props.pinCS;
 
-	spi->DR; spi->SR; // Clear the OVR flag
+	props.spi->DR; props.spi->SR; // Clear the OVR flag
 
-	spi->DR = (addr << 1);
+	props.spi->DR = (addr << 1);
 
-	while (!(spi->SR & SPI_I2S_FLAG_TXE));
-	spi->DR = 0;
+	while (!(props.spi->SR & SPI_I2S_FLAG_TXE));
+	props.spi->DR = 0;
 
-	while (!(spi->SR & SPI_I2S_FLAG_RXNE));
-	spi->DR;
+	while (!(props.spi->SR & SPI_I2S_FLAG_RXNE));
+	props.spi->DR;
 
-	while (!(spi->SR & SPI_I2S_FLAG_RXNE));
-	result = spi->DR;
+	while (!(props.spi->SR & SPI_I2S_FLAG_RXNE));
+	result = props.spi->DR;
 
-	gpioCS->BSRRL = pinCS;
+	props.gpioCS->BSRRL = props.pinCS;
 
 	return result;
 }
+
+void MRF24J40::setBroadcastCompleteListener(
+		BroadcastCompleteListener broadcastCompleteListener) {
+}
+
+void MRF24J40::recvPacket(uint8_t (&data)[TOHMessage::MAX_RF_PACKET_LENGTH], uint8_t& dataLength, uint8_t (&fcs)[2], uint8_t& lqi, uint8_t& rssi) {
+	writeShort(BBREG1, 0x04); // Disable RX
+	dataLength = readLong(RXFIFO) - 2; // Read length
+
+	for (int idx = 0; idx < dataLength; idx++) {
+		data[idx] = readLong(RXFIFO + 1 + idx);
+	}
+
+	// TODO: Try to enable RX sooner - e.g. after 10 received packets
+	writeShort(BBREG1, 0x00); // Enable RX
+
+	// TODO: Parse header and return it as distinct from data payload
+
+	fcs[0] = readLong(RXFIFO + 1 + dataLength);
+	fcs[1] = readLong(RXFIFO + 1 + dataLength + 1);
+	lqi = readLong(RXFIFO + 1 + dataLength + 2);
+	rssi = readLong(RXFIFO + 1 + dataLength + 2);
+}
+
 
 uint8_t MRF24J40::readLong(uint16_t addr) {
 	assert_param(addr < 0x400);
 
 	uint8_t result;
 
-	gpioCS->BSRRH = pinCS;
+	props.gpioCS->BSRRH = props.pinCS;
 
-	spi->DR; spi->SR; // Clear the OVR flag
+	props.spi->DR; props.spi->SR; // Clear the OVR flag
 
-	spi->DR = (addr >> 3) | 0x80;
+	props.spi->DR = (addr >> 3) | 0x80;
 
-	while (!(spi->SR & SPI_I2S_FLAG_TXE));
-	spi->DR = (addr << 5);
+	while (!(props.spi->SR & SPI_I2S_FLAG_TXE));
+	props.spi->DR = (addr << 5);
 
-	while (!(spi->SR & SPI_I2S_FLAG_RXNE));
-	spi->DR;
+	while (!(props.spi->SR & SPI_I2S_FLAG_RXNE));
+	props.spi->DR;
 
-	while (!(spi->SR & SPI_I2S_FLAG_TXE));
-	spi->DR = 0;
+	while (!(props.spi->SR & SPI_I2S_FLAG_TXE));
+	props.spi->DR = 0;
 
-	while (!(spi->SR & SPI_I2S_FLAG_RXNE));
-	spi->DR;
+	while (!(props.spi->SR & SPI_I2S_FLAG_RXNE));
+	props.spi->DR;
 
-	while (!(spi->SR & SPI_I2S_FLAG_RXNE));
-	result = spi->DR;
+	while (!(props.spi->SR & SPI_I2S_FLAG_RXNE));
+	result = props.spi->DR;
 
-	gpioCS->BSRRL = pinCS;
+	props.gpioCS->BSRRL = props.pinCS;
 
 	return result;
 }
-
 
 void MRF24J40::setChannel(uint8_t channel) {
 	this->channel = channel;
@@ -304,8 +382,40 @@ uint16_t MRF24J40::readSAddr() {
 	return readShort(SADRL) | (readShort(SADRH) << 8);
 }
 
-void MRF24J40::sendPacket(uint8_t* data, uint8_t length) {
-	// TODO
+void MRF24J40::broadcastPacket(uint8_t* data, uint8_t length) {
+
+	int txReg = TXNFIFO;
+
+	writeLong(txReg++, 7); // Header length
+	writeLong(txReg++, 7 + length); // Frame length
+
+	// Frame Control (order low-byte, high-byte; MSb)
+	// =============================================
+	// Source Addressing Mode [15-14] - 0x10 (Short address 16bit)
+	// Frame Version [13-12] - 0x00 (802.15.4-2003)
+	// Dest. Addressing Mode [11-10] - 0x00 (PAN identifier and address fields are not present)
+	// Reserved [9-7]
+	// PAN ID Compression [6] - 0x00 (No PAN ID Compression)
+	// Acknowledgement Request [5] - 0x00 (No acknowledgement requested)
+	// Frame Pending [4] - 0x00 (No Frame Pending)
+	// Security Enabled [3] - 0x00 (No security)
+	// Frame Type [2-0] - 0x01 (Data Frame)
+	writeLong(txReg++, 0x01);
+	writeLong(txReg++, 0x80);
+
+	writeLong(txReg++, 0x00); // Sequence Number
+
+	writeLong(txReg++, panId[0]); // Source PAN ID (low)
+	writeLong(txReg++, panId[1]); // Source PAN ID (high)
+
+	writeLong(txReg++, sAddr[0]); // Source Address (low)
+	writeLong(txReg++, sAddr[1]); // Source Address (high)
+
+	for (int idx = 0; idx < length; idx++) {
+		writeLong(txReg++, data[idx]);
+	}
+
+	writeShort(TXNCON, 0x01); // Trigger transmission, set: Frame Pending Status Bit = 0, Activate Indirect Transmission bit = 0, TX Normal FIFO Acknowledgement Request = 0, TX Normal FIFO Security Enabled = 0
 
 	txCount++;
 }

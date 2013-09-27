@@ -8,8 +8,8 @@
 #include "MsgHandler.h"
 #include <cstdio>
 
-MsgHandler::MsgHandler(MRF24J40 &mrf, TODQueue& todQueue, TOHQueue& tohQueue, uint32_t extiLine, IRQn irqn) :
-		mrf(mrf), todQueue(todQueue), tohQueue(tohQueue), irqPreemptionPriority(0), irqSubPriority(0), extiLine(extiLine), irqn(irqn) {
+MsgHandler::MsgHandler(Properties& initProps, MRF24J40 &mrf, TODQueue& todQueue, TOHQueue& tohQueue) :
+		props(initProps), mrf(mrf), todQueue(todQueue), tohQueue(tohQueue) {
 }
 
 MsgHandler::~MsgHandler() {
@@ -22,19 +22,20 @@ void MsgHandler::setPriority(uint8_t irqPreemptionPriority, uint8_t irqSubPriori
 
 void MsgHandler::init() {
 	todQueue.setMessageAvailableListener([&,this]{ this->messageAvailableListener(); });
+	mrf.setBroadcastCompleteListener([&,this](bool isSuccessful){ this->broadcastCompleteListener(isSuccessful); });
 
 	EXTI_InitTypeDef EXTI_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
 
 	// Configure Button EXTI line
-	EXTI_InitStructure.EXTI_Line = extiLine;
+	EXTI_InitStructure.EXTI_Line = props.extiLine;
 	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
 	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
 	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
 	EXTI_Init(&EXTI_InitStructure);
 
 	// Enable and set Button EXTI Interrupt to the lowest priority
-	NVIC_InitStructure.NVIC_IRQChannel = irqn;
+	NVIC_InitStructure.NVIC_IRQChannel = props.irqn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = irqPreemptionPriority;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = irqSubPriority;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
@@ -42,18 +43,16 @@ void MsgHandler::init() {
 	NVIC_Init(&NVIC_InitStructure);
 }
 
-void MsgHandler::messageAvailableListener() {
-	EXTI_GenerateSWInterrupt(extiLine);
+inline void MsgHandler::waitOnReturn() {
+	EXTI_ClearITPendingBit(props.extiLine);
 }
 
-void MsgHandler::moveToNextTODMsg() {
-	todQueue.moveToNextMsgRead();
+inline void MsgHandler::wakeup() {
+	EXTI_GenerateSWInterrupt(props.extiLine);
+}
 
-	__disable_irq();
-	if (!todQueue.isMsgReadAvailable()) {
-		EXTI_ClearITPendingBit(extiLine);
-	}
-	__enable_irq();
+void MsgHandler::messageAvailableListener() {
+	wakeup();
 }
 
 std::function<void(MsgHandler*)> MsgHandler::msgHandlers[static_cast<int>(TODMessage::Type::count)] {
@@ -64,33 +63,65 @@ std::function<void(MsgHandler*)> MsgHandler::msgHandlers[static_cast<int>(TODMes
 };
 
 void MsgHandler::runInterruptHandler() {
-	int msgTypeOrd = static_cast<int>(todQueue.getCurrentMsgRead().type);
-	assert_param(msgTypeOrd >= 0 || msgTypeOrd < static_cast<int>(TODMessage::Type::count));
+	if (todQueue.isMsgReadAvailable()) {
+		int msgTypeOrd = static_cast<int>(todQueue.getCurrentMsgRead().type);
+		assert_param(msgTypeOrd >= 0 || msgTypeOrd < static_cast<int>(TODMessage::Type::count));
 
-	msgHandlers[msgTypeOrd](this);
+		msgHandlers[msgTypeOrd](this);
+	}
+
+	waitOnReturn();
+
+	if (todQueue.isMsgReadAvailable()) {
+		wakeup();
+	}
 }
 
 void MsgHandler::handleSync() {
 	std::memcpy(&tohQueue.getCurrentMsgWrite(), &TOHMessage::CORRECT_SYNC, sizeof(TOHMessage::Sync));
 
 	tohQueue.moveToNextMsgWrite();
-	moveToNextTODMsg();
+	todQueue.moveToNextMsgRead();
 }
 
 void MsgHandler::handleSendPacket() {
+	if (!isSendPacketInProgress) {
+		TODMessage::SendPacket& inMsg = todQueue.getCurrentMsgRead().sendPacket;
+
+		mrf.broadcastPacket(inMsg.data, inMsg.length);
+
+		isSendPacketInProgress = true;
+	}
+
+	waitOnReturn();
+}
+
+void MsgHandler::broadcastCompleteListener(bool isSuccessful) {
 	TODMessage::SendPacket& inMsg = todQueue.getCurrentMsgRead().sendPacket;
-
-	mrf.sendPacket(inMsg.data, inMsg.length);
-
 	TOHMessage::PacketSent& outMsg = tohQueue.getCurrentMsgWrite().packetSent;
 	outMsg.type = TOHMessage::Type::PACKET_SENT;
 	outMsg.seq[0] = inMsg.seq[0];
 	outMsg.seq[1] = inMsg.seq[1];
 	outMsg.seq[2] = inMsg.seq[2];
 	outMsg.seq[3] = inMsg.seq[3];
+	outMsg.status = !isSuccessful;
 
 	tohQueue.moveToNextMsgWrite();
-	moveToNextTODMsg();
+	todQueue.moveToNextMsgRead();
+
+	isSendPacketInProgress = false;
+
+	if (todQueue.isMsgReadAvailable()) {
+		wakeup();
+	}
+}
+
+void MsgHandler::recvListener() {
+	TOHMessage::RecvPacket& outMsg = tohQueue.getCurrentMsgWrite().recvPacket;
+	outMsg.type = TOHMessage::Type::RECV_PACKET;
+	mrf.recvPacket(outMsg.data, outMsg.length, outMsg.fcs, outMsg.lqi, outMsg.rssi);
+
+	tohQueue.moveToNextMsgWrite();
 }
 
 void MsgHandler::handleSetChannel() {
@@ -103,7 +134,7 @@ void MsgHandler::handleSetChannel() {
 	outMsg.channel = inMsg.channel;
 
 	tohQueue.moveToNextMsgWrite();
-	moveToNextTODMsg();
+	todQueue.moveToNextMsgRead();
 }
 
 void MsgHandler::handleSetAddr() {
@@ -120,5 +151,5 @@ void MsgHandler::handleSetAddr() {
 	outMsg.sAddr[1] = inMsg.sAddr[1];
 
 	tohQueue.moveToNextMsgWrite();
-	moveToNextTODMsg();
+	todQueue.moveToNextMsgRead();
 }

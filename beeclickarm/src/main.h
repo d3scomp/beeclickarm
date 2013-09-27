@@ -22,10 +22,10 @@
 extern uint32_t mainCycles;
 
 extern Button infoButton;
-extern Button mrfPktRX;
-extern UART uart2;
+extern UART uartTOHD;
 extern MsgHandler msgHandler;
 extern Timer delayTimer;
+extern MRF24J40 mrf;
 
 
 #endif /* MAIN_H_ */

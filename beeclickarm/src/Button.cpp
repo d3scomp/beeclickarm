@@ -7,8 +7,7 @@
 
 #include "Button.h"
 
-Button::Button(GPIO_TypeDef* gpio, uint32_t pin, uint32_t clk, uint32_t extiLine, uint8_t extiPortSource, uint8_t extiPinSource, IRQn irqn) :
-		gpio(gpio), pin(pin), clk(clk), extiLine(extiLine), extiPortSource(extiPortSource), extiPinSource(extiPinSource), irqn(irqn) {
+Button::Button(Properties& initProps) : props(initProps) {
 }
 
 Button::~Button() {
@@ -24,27 +23,27 @@ void Button::init() {
 	EXTI_InitTypeDef EXTI_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
 
-	/* Enable the BUTTON Clock */
-	RCC_AHB1PeriphClockCmd(clk, ENABLE);
+	/* Enable the Button Clock */
+	RCC_AHB1PeriphClockCmd(props.clk, ENABLE);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
 
 	/* Configure Button pin as input */
 	gpioInitStruct.GPIO_Mode = GPIO_Mode_IN;
 	gpioInitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	gpioInitStruct.GPIO_Pin = pin;
-	GPIO_Init(gpio, &gpioInitStruct);
+	gpioInitStruct.GPIO_Pin = props.pin;
+	GPIO_Init(props.gpio, &gpioInitStruct);
 
-	SYSCFG_EXTILineConfig(extiPortSource, extiPinSource);
+	SYSCFG_EXTILineConfig(props.extiPortSource, props.extiPinSource);
 
 	/* Configure Button EXTI line */
-	EXTI_InitStructure.EXTI_Line = extiLine;
+	EXTI_InitStructure.EXTI_Line = props.extiLine;
 	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
 	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
 	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
 	EXTI_Init(&EXTI_InitStructure);
 
-	/* Enable and set Button EXTI Interrupt to the lowest priority */
-	NVIC_InitStructure.NVIC_IRQChannel = irqn;
+	/* Enable and set Button EXTI Interrupt to the given priority */
+	NVIC_InitStructure.NVIC_IRQChannel = props.irqn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = irqPreemptionPriority;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = irqSubPriority;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
@@ -54,7 +53,7 @@ void Button::init() {
 
 
 bool Button::isPressed() {
-	return GPIO_ReadInputDataBit(gpio, pin);
+	return GPIO_ReadInputDataBit(props.gpio, props.pin);
 }
 
 void Button::setPressedListener(Listener pressedListener) {
@@ -62,7 +61,7 @@ void Button::setPressedListener(Listener pressedListener) {
 }
 
 void Button::pressedInterruptHandler() {
-	EXTI_ClearITPendingBit(extiLine);
+	EXTI_ClearITPendingBit(props.extiLine);
 
 	if (pressedListener) {
 		pressedListener();

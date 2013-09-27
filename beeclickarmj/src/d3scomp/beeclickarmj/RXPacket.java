@@ -4,9 +4,9 @@ public class RXPacket {
 	private byte[] data;
 	private int rssi;
 	private int lqi;
-	private byte fcs;
+	private int fcs;
 	
-	public RXPacket(byte[] data, int rssi, int lqi, byte fcs) {
+	public RXPacket(byte[] data, int rssi, int lqi, int fcs) {
 		this.data = data;
 		this.fcs = fcs;
 		this.lqi = lqi;
@@ -17,7 +17,7 @@ public class RXPacket {
 		return data;
 	}
 	
-	public byte getFCS() {
+	public int getFCS() {
 		return fcs;
 	}
 	

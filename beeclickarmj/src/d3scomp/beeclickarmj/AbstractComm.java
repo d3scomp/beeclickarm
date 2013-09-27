@@ -267,7 +267,10 @@ public abstract class AbstractComm implements Comm {
 			TOHMsg.PacketSent tmsg = (TOHMsg.PacketSent)msg;
 
 			TXPacket pkt = txPackets.remove(tmsg.seq);
-			pkt.setStatus(tmsg.status == 0 ? TXPacket.Status.SENT : TXPacket.Status.ERROR);
+			synchronized (pkt) {
+				pkt.setStatus(tmsg.status == 0 ? TXPacket.Status.SENT : TXPacket.Status.ERROR);
+				pkt.notifyAll();
+			}
 
 		} if (msg.type == TOHMsg.Type.RECV_PACKET) {
 			TOHMsg.RecvPacket tmsg = (TOHMsg.RecvPacket)msg;

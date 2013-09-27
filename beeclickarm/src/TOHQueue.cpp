@@ -10,7 +10,7 @@
 
 std::function<size_t(TOHMessage&)> TOHMessage::sizeHandlers[static_cast<int>(Type::count)] {
 	[](TOHMessage &msg){ return sizeof(Sync); },
-	[](TOHMessage &msg){ return sizeof(Type) + sizeof(uint8_t) * 4 + msg.recvPacket.length; },
+	[](TOHMessage &msg){ return sizeof(Type) + sizeof(uint8_t) * 5 + msg.recvPacket.length; },
 	[](TOHMessage &msg){ return sizeof(PacketSent); },
 	[](TOHMessage &msg){ return sizeof(ChannelSet); },
 	[](TOHMessage &msg){ return sizeof(AddrSet); },

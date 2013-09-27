@@ -15,7 +15,18 @@
 
 class UART {
 public:
-	UART(uint32_t clkGPIO, uint32_t clkUSART, GPIO_TypeDef* gpio, USART_TypeDef* usart, uint16_t pinSourceTX, uint16_t pinSourceRX, uint32_t pinTX, uint32_t pinRX, uint8_t afConfig, uint8_t nvicIRQChannel);
+	struct Properties {
+		GPIO_TypeDef* gpio;
+		USART_TypeDef* usart;
+		uint32_t pinTX, pinRX;
+		uint16_t pinSourceTX, pinSourceRX;
+		void (*clkUSARTCmdFun)(uint32_t periph, FunctionalState newState);
+		uint32_t clkGPIO, clkUSART;
+		uint8_t afConfig;
+		uint8_t nvicIRQChannel;
+	};
+
+	UART(Properties& initProps);
 	~UART();
 
 	typedef std::function<void()> Listener;
@@ -42,20 +53,13 @@ public:
 	void txrxInterruptHandler();
 
 private:
-	uint32_t clkGPIO, clkUSART;
-	GPIO_TypeDef* gpio;
-	USART_TypeDef* usart;
-	uint16_t pinSourceTX, pinSourceRX;
-	uint32_t pinTX, pinRX;
-	uint8_t afConfig;
-
 	uint8_t irqPreemptionPriority;
 	uint8_t irqSubPriority;
 
-	uint8_t nvicIRQChannel;
-
 	Listener sendListener;
 	Listener recvListener;
+
+	Properties props;
 };
 
 #endif /* UART_H_ */

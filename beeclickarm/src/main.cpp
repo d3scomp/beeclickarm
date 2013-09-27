@@ -11,30 +11,61 @@
 
 uint32_t mainCycles;
 
-Timer delayTimer(TIM6, RCC_APB1Periph_TIM6);
+Timer::Properties tim6Props {
+	TIM6, RCC_APB1PeriphClockCmd, RCC_APB1Periph_TIM6
+};
+Timer delayTimer(tim6Props);
 
-LED rxtxLed(GPIOD, GPIO_Pin_12, RCC_AHB1Periph_GPIOD);
-LED outOfSyncLed(GPIOD, GPIO_Pin_14, RCC_AHB1Periph_GPIOD);
-LED mrfRecvLed(GPIOD, GPIO_Pin_13, RCC_AHB1Periph_GPIOD);
-LED mrfSendLed(GPIOD, GPIO_Pin_15, RCC_AHB1Periph_GPIOD);
+LED::Properties greenLedProps {
+	GPIOD, GPIO_Pin_12, RCC_AHB1Periph_GPIOD
+};
+LED::Properties redLedProps {
+	GPIOD, GPIO_Pin_14, RCC_AHB1Periph_GPIOD
+};
+LED::Properties orangeLedProps {
+	GPIOD, GPIO_Pin_13, RCC_AHB1Periph_GPIOD
+};
+LED::Properties blueLedProps {
+	GPIOD, GPIO_Pin_15, RCC_AHB1Periph_GPIOD
+};
+LED rxtxLed(greenLedProps);
+LED outOfSyncLed(redLedProps);
+LED mrfRecvLed(blueLedProps);
+LED mrfSendLed(orangeLedProps);
 
 PulseLED rxtxPulseLed(rxtxLed, 1);
 PulseLED mrfRecvPulseLed(mrfRecvLed, 1);
 PulseLED mrfSendPulseLed(mrfSendLed, 1);
 
-Button infoButton(GPIOA, GPIO_Pin_0, RCC_AHB1Periph_GPIOA, EXTI_Line0, EXTI_PortSourceGPIOA, EXTI_PinSource0, EXTI0_IRQn);
+Button::Properties userButtonProps {
+	GPIOA, GPIO_Pin_0, RCC_AHB1Periph_GPIOA, EXTI_Line0, EXTI_PortSourceGPIOA, EXTI_PinSource0, EXTI0_IRQn
+};
+Button infoButton(userButtonProps);
 
-// TODO: Redo
-Button mrfPktRX(GPIOC, GPIO_Pin_2, RCC_AHB1Periph_GPIOD, EXTI_Line2, EXTI_PortSourceGPIOD, EXTI_PinSource2, EXTI2_IRQn);
-MRF24J40 mrf(mrfRecvPulseLed, mrfSendPulseLed, RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_GPIOE, RCC_APB1Periph_SPI3, GPIOE, GPIOE, GPIOB, SPI3, GPIO_AF_SPI3,
-		GPIO_PinSource4, GPIO_PinSource5, GPIO_PinSource3, GPIO_PinSource4, GPIO_PinSource5, GPIO_Pin_4, GPIO_Pin_5, GPIO_Pin_3, GPIO_Pin_4, GPIO_Pin_5);
+MRF24J40::Properties mrfProps {
+	GPIOE, GPIOE, GPIOB, GPIOC,
+	SPI3,
+	GPIO_Pin_4, GPIO_Pin_5, GPIO_Pin_3, GPIO_Pin_4, GPIO_Pin_5, GPIO_Pin_2,
+	GPIO_PinSource4, GPIO_PinSource5, GPIO_PinSource3, GPIO_PinSource4, GPIO_PinSource5,
+	RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_GPIOE | RCC_AHB1Periph_GPIOC,
+	RCC_APB1PeriphClockCmd, RCC_APB1Periph_SPI3,
+	GPIO_AF_SPI3,
+	EXTI_Line2, EXTI_PortSourceGPIOD, EXTI_PinSource2, EXTI2_IRQn
+};
+MRF24J40 mrf(mrfProps, mrfRecvPulseLed, mrfSendPulseLed);
 
-UART uart2(RCC_AHB1Periph_GPIOA, RCC_APB1Periph_USART2, GPIOA, USART2, GPIO_PinSource2, GPIO_PinSource3, GPIO_Pin_2, GPIO_Pin_3, GPIO_AF_USART2, USART2_IRQn);
+UART::Properties uart2Props {
+	GPIOA, USART2, GPIO_Pin_2, GPIO_Pin_3, GPIO_PinSource2, GPIO_PinSource3, RCC_APB1PeriphClockCmd, RCC_AHB1Periph_GPIOA, RCC_APB1Periph_USART2, GPIO_AF_USART2, USART2_IRQn
+};
+UART uartTOHD(uart2Props);
 
-TODQueue todQueue(uart2, rxtxPulseLed, outOfSyncLed);
-TOHQueue tohQueue(uart2, rxtxPulseLed);
+TODQueue todQueue(uartTOHD, rxtxPulseLed, outOfSyncLed);
+TOHQueue tohQueue(uartTOHD, rxtxPulseLed);
 
-MsgHandler msgHandler(mrf, todQueue, tohQueue, EXTI_Line1, EXTI1_IRQn);
+MsgHandler::Properties msgHandlerProps {
+	EXTI_Line1, EXTI1_IRQn
+};
+MsgHandler msgHandler(msgHandlerProps, mrf, todQueue, tohQueue);
 
 
 void handleInfoButtonInterrupt() {
@@ -57,15 +88,11 @@ void handleInfoButtonInterrupt() {
 	tohQueue.moveToNextMsgWrite();
 }
 
-void handleMRFPktRX() {
-	// TODO: Handle packet RX
-}
-
 int main(void)
 {
 	NVIC_SetPriorityGrouping(NVIC_PriorityGroup_2);	// 2 bits for pre-emption priority, 2 bits for non-preemptive subpriority
-	uart2.setPriority(0,0);
-	mrfPktRX.setPriority(1,0);
+	uartTOHD.setPriority(0,0);
+	mrf.setPriority(1,0);
 	infoButton.setPriority(1,1);
 	msgHandler.setPriority(1,2);
 
@@ -82,16 +109,14 @@ int main(void)
 	mrfRecvLed.init();
 	rxtxPulseLed.init();
 
-	uart2.init();
+	uartTOHD.init();
 	mrf.init();
 	tohQueue.init();
 	msgHandler.init();
 	todQueue.init();
 	infoButton.init();
-	mrfPktRX.init();
 
 	infoButton.setPressedListener(handleInfoButtonInterrupt);
-	mrfPktRX.setPressedListener(handleMRFPktRX);
 
 	NVIC_SystemLPConfig(NVIC_LP_SLEEPONEXIT, ENABLE);
 	while (1) {
