@@ -8,13 +8,13 @@
 #include "TOHQueue.h"
 
 
-std::function<size_t(TOHMessage&)> TOHMessage::sizeHandlers[static_cast<int>(Type::count)] {
-	[](TOHMessage &msg){ return sizeof(Sync); },
-	[](TOHMessage &msg){ return sizeof(Type) + sizeof(uint8_t) * 5 + msg.recvPacket.length; },
-	[](TOHMessage &msg){ return sizeof(PacketSent); },
-	[](TOHMessage &msg){ return sizeof(ChannelSet); },
-	[](TOHMessage &msg){ return sizeof(AddrSet); },
-	[](TOHMessage &msg){ return sizeof(Type) + sizeof(uint8_t) + msg.info.length; }
+size_t (*TOHMessage::sizeHandlers[static_cast<int>(Type::count)])(TOHMessage&) {
+	[](TOHMessage &msg){ return sizeof(TOHMessage::Sync); },
+	[](TOHMessage &msg){ return sizeof(TOHMessage::Type) + sizeof(uint8_t) * 9 + msg.recvPacket.length; },
+	[](TOHMessage &msg){ return sizeof(TOHMessage::PacketSent); },
+	[](TOHMessage &msg){ return sizeof(TOHMessage::ChannelSet); },
+	[](TOHMessage &msg){ return sizeof(TOHMessage::AddrSet); },
+	[](TOHMessage &msg){ return sizeof(TOHMessage::Type) + sizeof(uint8_t) + msg.info.length; }
 };
 
 TOHMessage::CorrectSync TOHMessage::CORRECT_SYNC;
@@ -32,7 +32,7 @@ TOHQueue::~TOHQueue() {
 }
 
 void TOHQueue::init() {
-	uart.setSendListener([&,this]{ this->handleTX(); });
+	uart.setSendListener(sendListenerStatic, this);
 }
 
 void TOHQueue::moveToNextMsgWrite() {
@@ -60,8 +60,12 @@ void TOHQueue::moveToNextMsgRead() {
 	}
 }
 
+void TOHQueue::sendListenerStatic(void *obj) {
+	static_cast<TOHQueue*>(obj)->handleTX();
+}
+
 void TOHQueue::handleTX() {
-	if (readIdx != writeIdx && uart.canSend()) {
+	if (readIdx != writeIdx) {
 		uint8_t *txBuffer = (uint8_t*)&queue[readIdx];
 		uart.send(txBuffer[txBufferPos++]);
 

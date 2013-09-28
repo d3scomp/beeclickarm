@@ -7,11 +7,11 @@
 
 #include "TODQueue.h"
 
-std::function<size_t(TODMessage&)> TODMessage::expectedSizeHandlers[static_cast<int>(Type::count)] {
-	[](TODMessage &msg){ return sizeof(Sync); },
-	[](TODMessage &msg){ return sizeof(Type) + sizeof(uint8_t) + sizeof(uint32_t) + msg.sendPacket.length; },
-	[](TODMessage &msg){ return sizeof(SetChannel); },
-	[](TODMessage &msg){ return sizeof(SetAddr); }
+size_t (*TODMessage::expectedSizeHandlers[static_cast<int>(Type::count)])(TODMessage&) {
+	[](TODMessage &msg){ return sizeof(TODMessage::Sync); },
+	[](TODMessage &msg){ return sizeof(TODMessage::Type) + sizeof(uint8_t) + sizeof(uint32_t) + msg.sendPacket.length; },
+	[](TODMessage &msg){ return sizeof(TODMessage::SetChannel); },
+	[](TODMessage &msg){ return sizeof(TODMessage::SetAddr); }
 };
 
 constexpr uint8_t TODMessage::SYNC_PATTERN[];
@@ -32,7 +32,7 @@ TODQueue::~TODQueue() {
 void TODQueue::init() {
 	outOfSyncLed.on();
 
-	uart.setRecvListener([&,this]{ this->handleRX(); });
+	uart.setRecvListener(recvListenerStatic, this);
 	uart.enableRecvEvents();
 }
 
@@ -53,70 +53,59 @@ void TODQueue::moveToNextMsgWrite() {
 
 	assert_param(readIdx != writeIdx);
 
-	if (messageAvailableListener) {
-		messageAvailableListener();
-	}
+	assert_param(messageAvailableListener);
+	messageAvailableListener(messageAvailableListenerObj);
 }
 
-void TODQueue::setMessageAvailableListener(Listener messageAvailableListener) {
+void TODQueue::setMessageAvailableListener(Listener messageAvailableListener, void* obj) {
 	this->messageAvailableListener = messageAvailableListener;
+	messageAvailableListenerObj = obj;
 }
 
+void TODQueue::recvListenerStatic(void *obj) {
+	static_cast<TODQueue*>(obj)->handleRX();
+}
 
 void TODQueue::handleRX() {
-	if (uart.isBreakOrError()) {
-		uart.clearBreakOrError();
-
-		rxBufferPos = 0;
-		rxState = RXState::SYNC;
-	}
+	uint8_t *rxBuffer = (uint8_t*)&queue[writeIdx];
+	rxBuffer[rxBufferPos++] = uart.recv();
 
 	if (rxState == RXState::SYNC) {
-		outOfSyncLed.on();
-	} else {
-		outOfSyncLed.off();
-	}
-
-	if (uart.canRecv()) {
-		uint8_t *rxBuffer = (uint8_t*)&queue[writeIdx];
-		rxBuffer[rxBufferPos++] = uart.recv();
-
-		if (rxState == RXState::SYNC) {
-			if (rxBuffer[rxBufferPos - 1] == ((uint8_t*)&TODMessage::CORRECT_SYNC)[rxBufferPos - 1]) {
-				if (rxBufferPos == sizeof(TODMessage::Sync)) {
-					rxBufferPos = 0;
-					rxState = RXState::OPERATIONAL;
-
-					moveToNextMsgWrite();
-				}
-
-			} else {
+		if (rxBuffer[rxBufferPos - 1] == ((uint8_t*)&TODMessage::CORRECT_SYNC)[rxBufferPos - 1]) {
+			if (rxBufferPos == sizeof(TODMessage::Sync)) {
 				rxBufferPos = 0;
+				rxState = RXState::OPERATIONAL;
+
+				moveToNextMsgWrite();
+				outOfSyncLed.off();
 			}
 
 		} else {
-			TODMessage& msg = queue[writeIdx];
-			TODMessage::Type msgType = msg.type;
-
-			if (msgType == TODMessage::Type::SYNC) { // This fires at receiving the first byte of the sync, the rest of the sync is handled above (in RX_SYNC)
-				rxState = RXState::SYNC;
-
-			} else if (static_cast<int>(msgType) < 0 || static_cast<int>(msgType) >= static_cast<int>(TODMessage::Type::count)) {
-				rxBufferPos = 0;
-				rxState = RXState::SYNC;
-
-			} else if (rxBufferPos == msg.getExpectedSizeLowerBound()) {
-				// Note that we call above a handler while the message is still only partially received. That is essentially wrong, but we assume the handlers
-				// won't return size which is smaller than the preamble of the message containing the length of the the message data. Once we read the length, the
-				// handler returns a correct value. Essentially it means that messages have to store the data length at the beginning and the length should be unsigned.
-
-				moveToNextMsgWrite();
-				rxBufferPos = 0;
-			}
+			rxBufferPos = 0;
 		}
 
-		rxLed.pulse();
+	} else {
+		TODMessage& msg = queue[writeIdx];
+		TODMessage::Type msgType = msg.type;
+
+		if (msgType == TODMessage::Type::SYNC) { // This fires at receiving the first byte of the sync, the rest of the sync is handled above (in RX_SYNC)
+			rxState = RXState::SYNC;
+
+		} else if (static_cast<int>(msgType) < 0 || static_cast<int>(msgType) >= static_cast<int>(TODMessage::Type::count)) {
+			rxBufferPos = 0;
+			rxState = RXState::SYNC;
+
+		} else if (rxBufferPos == msg.getExpectedSizeLowerBound()) {
+			// Note that we call above a handler while the message is still only partially received. That is essentially wrong, but we assume the handlers
+			// won't return size which is smaller than the preamble of the message containing the length of the the message data. Once we read the length, the
+			// handler returns a correct value. Essentially it means that messages have to store the data length at the beginning and the length should be unsigned.
+
+			moveToNextMsgWrite();
+			rxBufferPos = 0;
+		}
 	}
+
+	rxLed.pulse();
 }
 
 

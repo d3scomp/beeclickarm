@@ -11,7 +11,6 @@
 #include "stm32f4xx.h"
 #include "LED.h"
 #include "TOHQueue.h"
-#include <functional>
 
 class MRF24J40 {
 public:
@@ -19,14 +18,14 @@ public:
 		GPIO_TypeDef* gpioRST;
 		GPIO_TypeDef* gpioCS;
 		GPIO_TypeDef* gpioTXRX;
-		GPIO_TypeDef* gpioINT;
+		GPIO_TypeDef* gpioRFINT;
 		SPI_TypeDef* spi;
 		uint32_t pinRST;
 		uint32_t pinCS;
 		uint32_t pinSCK;
 		uint32_t pinMISO;
 		uint32_t pinMOSI;
-		uint32_t pinINT;
+		uint32_t pinRFINT;
 		uint8_t pinSourceRST;
 		uint8_t pinSourceCS;
 		uint8_t pinSourceSCK;
@@ -36,14 +35,15 @@ public:
 		void (*clkSPICmdFun)(uint32_t periph, FunctionalState newState);
 		uint32_t clkSPI;
 		uint8_t afConfig;
-		uint32_t extiLineINT;
-		uint8_t extiPortSourceINT;
-		uint8_t extiPinSourceINT;
-		IRQn irqnINT;
+		uint32_t extiLineRFINT;
+		uint8_t extiPortSourceRFINT;
+		uint8_t extiPinSourceRFINT;
+		IRQn irqnRFINT;
+		IRQn irqnSPI;
 	};
 
-	typedef std::function<void()> RecvListener;
-	typedef std::function<void(bool)> BroadcastCompleteListener;
+	typedef void (*RecvListener)(void *);
+	typedef void (*BroadcastCompleteListener)(void *, bool);
 
 	MRF24J40(Properties& initProps, PulseLED recvLed, PulseLED sendLed);
 	~MRF24J40();
@@ -51,11 +51,19 @@ public:
 	void init();
 	void reset();
 
-	void interruptHandler();
-	void setRecvListener(RecvListener recvListener);
-	void setBroadcastCompleteListener(BroadcastCompleteListener broadcastCompleteListener);
+	void rfInterruptHandler();
 
-	void setPriority(uint8_t irqPreemptionPriority, uint8_t irqSubPriority);
+	inline void spiInterruptHandler() {
+		if (props.spi->SR & SPI_I2S_FLAG_RXNE) {
+			lastReadValue = props.spi->DR;
+		}
+	}
+
+	void setRecvListener(RecvListener recvListener, void* obj);
+	void setBroadcastCompleteListener(BroadcastCompleteListener broadcastCompleteListener, void* obj);
+
+	void setRFPriority(uint8_t irqPreemptionPriority, uint8_t irqSubPriority);
+	void setSPIPriority(uint8_t irqPreemptionPriority, uint8_t irqSubPriority);
 
 	void setChannel(uint8_t channel);
 	uint8_t readChannel();
@@ -67,7 +75,7 @@ public:
 	uint16_t readSAddr();
 
 	void broadcastPacket(uint8_t *data, uint8_t dataLength);
-	void recvPacket(uint8_t (&data)[TOHMessage::MAX_RF_PACKET_LENGTH], uint8_t& dataLength, uint8_t (&fcs)[2], uint8_t& lqi, uint8_t& rssi);
+	bool recvPacket(uint8_t (&data)[TOHMessage::MAX_RF_PACKET_LENGTH], uint8_t& dataLength, uint8_t (&srcPanId)[2], uint8_t (&srcSAddr)[2], uint8_t (&fcs)[2], uint8_t& lqi, uint8_t& rssi);
 
 
 	uint8_t getChannel() const {
@@ -103,16 +111,23 @@ private:
 	int txCount;
 	int rxCount;
 
-	uint8_t irqPreemptionPriority;
-	uint8_t irqSubPriority;
+	uint8_t irqSPIPreemptionPriority;
+	uint8_t irqSPISubPriority;
+	uint8_t irqRFPreemptionPriority;
+	uint8_t irqRFSubPriority;
 
 	RecvListener recvListener;
+	void* recvListenerObj;
+
 	BroadcastCompleteListener broadcastCompleteListener;
+	void* broadcastCompleteListenerObj;
 
 	void writeShort(uint8_t addr, uint8_t value);
 	void writeLong(uint16_t addr, uint8_t value);
 	uint8_t readShort(uint8_t addr);
 	uint8_t readLong(uint16_t addr);
+
+	uint8_t lastReadValue;
 
 	/* short registers */
 	static constexpr uint8_t RXMCR = 0x00;
@@ -224,7 +239,6 @@ private:
 
 	static constexpr uint16_t RXFIFO = 0x300;
 	static constexpr uint16_t TXNFIFO = 0x000;
-
 };
 
 #endif /* MRF24J40_H_ */

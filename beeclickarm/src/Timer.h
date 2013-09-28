@@ -16,11 +16,13 @@ public:
 		TIM_TypeDef* tim;
 		void (*clkCmdFun)(uint32_t periph, FunctionalState newState);
 		uint32_t clk;
+		IRQn irqn;
 	};
 
 	Timer(Properties& initProps);
 	virtual ~Timer();
 
+	void setPriority(uint8_t irqPreemptionPriority, uint8_t irqSubPriority);
 	void init();
 
 	inline void uDelay(uint16_t us) {
@@ -36,6 +38,9 @@ public:
 
 private:
 	Properties props;
+
+	uint8_t irqPreemptionPriority;
+	uint8_t irqSubPriority;
 };
 
 #endif /* TIMER_H_ */

@@ -11,6 +11,8 @@ public interface Comm {
 	public void setAddr(int panId, int sAddr) throws CommException;
 
 	public RXPacket receivePacket() throws CommException;
+	
+	public void setReceivePacketListener(ReceivePacketListener listener);
 
 	public abstract void start() throws CommException;
 

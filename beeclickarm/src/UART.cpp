@@ -7,33 +7,10 @@
 
 #include <UART.h>
 
-uint8_t UART::recv() {
-	return (uint8_t)USART_ReceiveData(props.usart);
-}
-
-void UART::send(uint8_t ch) {
-	USART_SendData(props.usart, ch);
-}
-
-bool UART::canSend() {
-	return USART_GetFlagStatus(props.usart, USART_FLAG_TXE) == SET;
-}
-
-bool UART::canRecv() {
-	return USART_GetFlagStatus(props.usart, USART_FLAG_RXNE) == SET;
-}
-
-bool UART::isSendComplete() {
-	return USART_GetFlagStatus(props.usart, USART_FLAG_TC) == SET;
-}
-
-bool UART::isBreakOrError() {
-	return props.usart->SR & (USART_FLAG_FE | USART_FLAG_ORE | USART_FLAG_PE);
-}
-
 void UART::clearBreakOrError() {
-	volatile int32_t dummy = props.usart->SR;
-	props.usart->DR = 0;
+	volatile int32_t dummy;
+	dummy = props.usart->SR;
+	dummy = props.usart->DR;
 }
 
 void UART::enableSendEvents() {
@@ -44,8 +21,9 @@ void UART::disableSendEvents() {
 	USART_ITConfig(USART2, USART_IT_TXE, DISABLE);
 }
 
-void UART::setSendListener(Listener sendReadyListener) {
+void UART::setSendListener(Listener sendReadyListener, void *obj) {
 	this->sendListener = sendReadyListener;
+	sendListenerObj = obj;
 }
 
 void UART::enableRecvEvents() {
@@ -56,21 +34,20 @@ void UART::disableRecvEvents() {
 	USART_ITConfig(USART2, USART_IT_RXNE, DISABLE);
 }
 
-void UART::setRecvListener(Listener recvReadyListener) {
+void UART::setRecvListener(Listener recvReadyListener, void *obj) {
 	this->recvListener = recvReadyListener;
+	recvListenerObj = obj;
 }
 
 void UART::txrxInterruptHandler() {
-	if (USART_GetITStatus(props.usart, USART_IT_TXE)) {
-		if (sendListener) {
-			sendListener();
-		}
+	if (canRecv()) {
+		assert_param(recvListener);
+		recvListener(recvListenerObj);
 	}
 
-	if (USART_GetITStatus(props.usart, USART_IT_RXNE)) {
-		if (recvListener) {
-			recvListener();
-		}
+	if (canSend()) {
+		assert_param(sendListener);
+		sendListener(sendListenerObj);
 	}
 }
 
@@ -109,7 +86,8 @@ void UART::init() {
 
 	USART_InitTypeDef usartInitStruct;
 	usartInitStruct.USART_BaudRate = 921600;
-//	usartInitStruct.USART_BaudRate = 2400;
+//	usartInitStruct.USART_BaudRate = 460800;
+//	usartInitStruct.USART_BaudRate = 115200;
 	usartInitStruct.USART_WordLength = USART_WordLength_8b;
 	usartInitStruct.USART_StopBits = USART_StopBits_1;
 	usartInitStruct.USART_Parity = USART_Parity_No;
@@ -118,11 +96,10 @@ void UART::init() {
 
 	USART_Init(props.usart, &usartInitStruct);
 
-
 	NVIC_InitTypeDef nvicInitStruct;
 
-	// Enable the USART2 Interrupt
-	nvicInitStruct.NVIC_IRQChannel = props.nvicIRQChannel;
+	// Enable the USART Interrupt
+	nvicInitStruct.NVIC_IRQChannel = props.irqn;
 	nvicInitStruct.NVIC_IRQChannelPreemptionPriority = irqPreemptionPriority;
 	nvicInitStruct.NVIC_IRQChannelSubPriority = irqSubPriority;
 	nvicInitStruct.NVIC_IRQChannelCmd = ENABLE;

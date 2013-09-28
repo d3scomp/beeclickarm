@@ -9,7 +9,6 @@
 #define TOHQUEUE_H_
 
 #include "stm32f4xx.h"
-#include <functional>
 #include "TODQueue.h"
 
 struct TOHMessage {
@@ -29,6 +28,8 @@ public:
 	struct RecvPacket {
 		Type type;
 		uint8_t length;
+		uint8_t srcPanId[2];
+		uint8_t srcSAddr[2];
 		uint8_t rssi;
 		uint8_t lqi;
 		uint8_t fcs[2];
@@ -78,7 +79,7 @@ public:
 	static CorrectSync CORRECT_SYNC;
 
 private:
-	static std::function<size_t(TOHMessage&)> sizeHandlers[static_cast<int>(Type::count)];
+	static size_t (*sizeHandlers[static_cast<int>(Type::count)])(TOHMessage&);
 };
 
 
@@ -108,6 +109,7 @@ private:
 
 	uint32_t txBufferPos;
 	void handleTX();
+	static void sendListenerStatic(void *obj);
 };
 
 #endif /* TOHQUEUE_H_ */

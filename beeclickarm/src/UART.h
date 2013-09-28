@@ -11,8 +11,6 @@
 #include "stm32f4xx.h"
 #include "stm32f4xx_it.h"
 
-#include <functional>
-
 class UART {
 public:
 	struct Properties {
@@ -23,41 +21,62 @@ public:
 		void (*clkUSARTCmdFun)(uint32_t periph, FunctionalState newState);
 		uint32_t clkGPIO, clkUSART;
 		uint8_t afConfig;
-		uint8_t nvicIRQChannel;
+		uint8_t irqn;
 	};
 
 	UART(Properties& initProps);
 	~UART();
 
-	typedef std::function<void()> Listener;
+	typedef void (*Listener)(void *);
 
 	void setPriority(uint8_t irqPreemptionPriority, uint8_t irqSubPriority);
 	void init();
 
-	uint8_t recv();
-	void send(uint8_t ch);
-	bool canSend();
-	bool canRecv();
-	bool isSendComplete();
-	bool isBreakOrError();
+	inline bool isBreakOrError() {
+		return props.usart->SR & (USART_FLAG_FE | USART_FLAG_ORE | USART_FLAG_PE);
+	}
+
 	void clearBreakOrError();
 
 	void enableSendEvents();
 	void disableSendEvents();
-	void setSendListener(Listener sendListener);
+	void setSendListener(Listener sendListener, void *obj);
 
 	void enableRecvEvents();
 	void disableRecvEvents();
-	void setRecvListener(Listener recvListener);
+	void setRecvListener(Listener recvListener, void *obj);
 
 	void txrxInterruptHandler();
+
+	inline uint8_t recv() {
+		return (uint8_t)props.usart->DR;
+	}
+
+	inline void send(uint8_t ch) {
+		props.usart->DR= ch;
+	}
+
+	inline bool canSend() {
+		return props.usart->SR & USART_FLAG_TXE;
+	}
+
+	inline bool canRecv() {
+		return props.usart->SR & USART_FLAG_RXNE;
+	}
+
+	inline bool isSendComplete() {
+		return props.usart->SR & USART_FLAG_TC;
+	}
 
 private:
 	uint8_t irqPreemptionPriority;
 	uint8_t irqSubPriority;
 
 	Listener sendListener;
+	void *sendListenerObj;
+
 	Listener recvListener;
+	void *recvListenerObj;
 
 	Properties props;
 };

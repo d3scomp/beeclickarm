@@ -9,7 +9,6 @@
 #define BUTTON_H_
 
 #include "stm32f4xx.h"
-#include <functional>
 
 class Button {
 public:
@@ -27,10 +26,10 @@ public:
 	Button(Properties &initProps);
 	~Button();
 
-	typedef std::function<void()> Listener;
+	typedef void (*Listener)(void *);
 
 	bool isPressed();
-	void setPressedListener(Listener pressedListener);
+	void setPressedListener(Listener pressedListener, void* obj);
 
 	void setPriority(uint8_t irqPreemptionPriority, uint8_t irqSubPriority);
 	void init();
@@ -44,6 +43,7 @@ private:
 	uint8_t irqSubPriority;
 
 	Listener pressedListener;
+	void *pressedListenerObj;
 };
 
 #endif /* BUTTON_H_ */

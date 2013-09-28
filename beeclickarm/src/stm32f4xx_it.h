@@ -27,7 +27,7 @@ void USART2_IRQHandler(void);
 void EXTI0_IRQHandler(void);
 void EXTI1_IRQHandler(void);
 void EXTI2_IRQHandler(void);
-void SPI1_IRQHandler(void);
+void SPI3_IRQHandler(void);
 
 
 #ifdef __cplusplus

@@ -56,15 +56,15 @@ bool Button::isPressed() {
 	return GPIO_ReadInputDataBit(props.gpio, props.pin);
 }
 
-void Button::setPressedListener(Listener pressedListener) {
+void Button::setPressedListener(Listener pressedListener, void* obj) {
 	this->pressedListener = pressedListener;
+	pressedListenerObj = obj;
 }
 
 void Button::pressedInterruptHandler() {
 	EXTI_ClearITPendingBit(props.extiLine);
 
-	if (pressedListener) {
-		pressedListener();
-	}
+	assert_param(pressedListener);
+	pressedListener(pressedListenerObj);
 }
 

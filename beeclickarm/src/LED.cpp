@@ -37,12 +37,10 @@ void LED::off() {
 }
 
 
-std::list<PulseLED*> PulseLED::tickListeners;
+PulseLED* PulseLED::tickListener;
 
 void PulseLED::tickInterruptHandler() {
-	for (PulseLED* led : tickListeners) {
-		led->tick();
-	}
+	tickListener->tick();
 }
 
 
@@ -53,7 +51,7 @@ PulseLED::~PulseLED() {
 }
 
 void PulseLED::init() {
-	tickListeners.push_back(this);
+	tickListener = this;
 }
 
 void PulseLED::pulse() {

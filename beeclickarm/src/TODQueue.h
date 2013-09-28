@@ -9,7 +9,6 @@
 #define TODQUEUE_H_
 
 #include "stm32f4xx.h"
-#include <functional>
 #include <cstddef>
 #include <cstring>
 #include "UART.h"
@@ -67,7 +66,7 @@ public:
 	static CorrectSync CORRECT_SYNC;
 
 private:
-	static std::function<size_t(TODMessage&)> expectedSizeHandlers[static_cast<int>(Type::count)];
+	static size_t (*expectedSizeHandlers[static_cast<int>(Type::count)])(TODMessage&);
 };
 
 
@@ -88,8 +87,8 @@ public:
 
 	void moveToNextMsgRead();
 
-	typedef std::function<void()> Listener;
-	void setMessageAvailableListener(Listener messageAvailableListener);
+	typedef void (*Listener)(void *);
+	void setMessageAvailableListener(Listener messageAvailableListener, void *obj);
 
 private:
 	enum class RXState {
@@ -108,10 +107,12 @@ private:
 	uint32_t writeIdx; // To which position the msg is to be written
 
 	Listener messageAvailableListener;
+	void* messageAvailableListenerObj;
 
 	RXState rxState;
 	uint32_t rxBufferPos;
 	void handleRX();
+	static void recvListenerStatic(void *obj);
 };
 
 #endif /* TODQUEUE_H_ */

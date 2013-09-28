@@ -83,6 +83,8 @@ abstract class TOHMsg {
 
 	static class RecvPacket extends TOHMsg {
 		static final int MAX_DATA_LENGTH = 128;
+		int srcPanId;
+		int srcSAddr;
 		int rssi;
 		int lqi;
 		int fcs;
@@ -98,6 +100,9 @@ abstract class TOHMsg {
 			int length = buf.get() & 0xFF;
 			assert(length <= MAX_DATA_LENGTH);
 			
+			srcPanId = ((buf.get() & 0xFF) << 0) | ((buf.get() & 0xFF) << 8);
+			srcSAddr = ((buf.get() & 0xFF) << 0) | ((buf.get() & 0xFF) << 8);
+
 			rssi = buf.get() & 0xFF;
 			lqi = buf.get() & 0xFF;
 			fcs = ((buf.get() & 0xFF) << 0) | ((buf.get() & 0xFF) << 8);
@@ -107,7 +112,7 @@ abstract class TOHMsg {
 		}
 		
 		static int getExpectedSizeLowerBound(ByteBuffer buf) {
-			return typeSize + 5 + (buf.position() == 1 ? 0 : (buf.get(1) & 0xFF));
+			return typeSize + 9 + (buf.position() == 1 ? 0 : (buf.get(1) & 0xFF));
 		}
 	}
 

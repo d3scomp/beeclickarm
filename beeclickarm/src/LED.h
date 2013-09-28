@@ -9,7 +9,6 @@
 #define LED_H_
 
 #include "stm32f4xx.h"
-#include <list>
 
 class LED {
 public:
@@ -47,7 +46,7 @@ private:
 
 	void tick();
 
-	static std::list<PulseLED*> tickListeners;
+	static PulseLED* tickListener;
 };
 
 #endif /* LED_H_ */

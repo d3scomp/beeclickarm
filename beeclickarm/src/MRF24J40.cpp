@@ -14,9 +14,14 @@ MRF24J40::MRF24J40(Properties& initProps, PulseLED recvLed, PulseLED sendLed) : 
 MRF24J40::~MRF24J40() {
 }
 
-void MRF24J40::setPriority(uint8_t irqPreemptionPriority, uint8_t irqSubPriority) {
-	this->irqPreemptionPriority = irqPreemptionPriority;
-	this->irqSubPriority = irqSubPriority;
+void MRF24J40::setRFPriority(uint8_t irqPreemptionPriority, uint8_t irqSubPriority) {
+	irqRFPreemptionPriority = irqPreemptionPriority;
+	irqRFSubPriority = irqSubPriority;
+}
+
+void MRF24J40::setSPIPriority(uint8_t irqPreemptionPriority, uint8_t irqSubPriority) {
+	irqSPIPreemptionPriority = irqPreemptionPriority;
+	irqSPISubPriority = irqSubPriority;
 }
 
 void MRF24J40::init() {
@@ -80,56 +85,67 @@ void MRF24J40::init() {
 	/* Configure INT pin as input */
 	gpioInitStruct.GPIO_Mode = GPIO_Mode_IN;
 	gpioInitStruct.GPIO_PuPd = GPIO_PuPd_UP;
-	gpioInitStruct.GPIO_Pin = props.pinINT;
-	GPIO_Init(props.gpioINT, &gpioInitStruct);
+	gpioInitStruct.GPIO_Pin = props.pinRFINT;
+	GPIO_Init(props.gpioRFINT, &gpioInitStruct);
 
-	SYSCFG_EXTILineConfig(props.extiPortSourceINT, props.extiPinSourceINT);
+	SYSCFG_EXTILineConfig(props.extiPortSourceRFINT, props.extiPinSourceRFINT);
 
 	/* Configure INT EXTI line */
-	EXTI_InitStructure.EXTI_Line = props.extiLineINT;
+	EXTI_InitStructure.EXTI_Line = props.extiLineRFINT;
 	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
 	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Falling;
 	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
 	EXTI_Init(&EXTI_InitStructure);
 
 	/* Enable and set INT EXTI Interrupt to the given priority */
-	NVIC_InitStructure.NVIC_IRQChannel = props.irqnINT;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = irqPreemptionPriority;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = irqSubPriority;
+	NVIC_InitStructure.NVIC_IRQChannel = props.irqnRFINT;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = irqRFPreemptionPriority;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = irqRFSubPriority;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 
 	NVIC_Init(&NVIC_InitStructure);
+
+	// Configure the SPI interrupt priority
+	NVIC_Init(&NVIC_InitStructure);
+	NVIC_InitStructure.NVIC_IRQChannel = props.irqnSPI;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = irqSPIPreemptionPriority;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = irqSPISubPriority;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+	SPI_I2S_ITConfig(props.spi, SPI_I2S_IT_RXNE, ENABLE);
 
 	SPI_Cmd(props.spi, ENABLE);
 
 	reset();
 }
 
-void MRF24J40::interruptHandler() {
-	EXTI_ClearITPendingBit(props.extiLineINT);
+void MRF24J40::rfInterruptHandler() {
+	EXTI_ClearITPendingBit(props.extiLineRFINT);
 
 	uint8_t intStat = readShort(INTSTAT);
 
 	if (intStat & 0x01) { // TXNIF
-		if (broadcastCompleteListener) {
-			uint8_t txStat = readShort(TXSTAT);
-			broadcastCompleteListener(!(txStat & 0x01));
-		}
+		assert_param(broadcastCompleteListener);
+
+		uint8_t txStat = readShort(TXSTAT);
+		broadcastCompleteListener(broadcastCompleteListenerObj, !(txStat & 0x01));
 	}
 
 	if (intStat & 0x08) { // RXIF
-		if (recvListener) {
-			recvListener();
-		}
+		assert_param(recvListener);
+
+		recvListener(recvListenerObj);
 	}
 }
 
-void MRF24J40::setRecvListener(RecvListener recvListener) {
+void MRF24J40::setRecvListener(RecvListener recvListener, void* obj) {
 	this->recvListener = recvListener;
+	recvListenerObj = obj;
 }
 
-void MRF24J40::setBroadcastCompleteListener(BroadcastCompleteListener broadcastCompleteListener) {
+void MRF24J40::setBroadcastCompleteListener(BroadcastCompleteListener broadcastCompleteListener, void* obj) {
 	this->broadcastCompleteListener = broadcastCompleteListener;
+	broadcastCompleteListenerObj = obj;
 }
 
 void MRF24J40::reset() {
@@ -142,19 +158,6 @@ void MRF24J40::reset() {
 	GPIO_SetBits(props.gpioRST, props.pinRST);
 
 	delayTimer.uDelay(2000);
-
-
-	/*
-	 * We don't use interrupt for the SPI communication. However we keep it here just for case it is needed.
-
-		// Configure the SPI interrupt priority
-		NVIC_Init(&NVIC_InitStructure);
-		NVIC_InitStructure.NVIC_IRQChannel = SPI2_IRQn;
-		NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;  // This is the custom interrupt with the highest priority. Care has to be taken that it does not collide with todHandlerInterruptInit that has priority 1,0
-		NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
-		NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-		NVIC_Init(&NVIC_InitStructure);
-	*/
 
 
 	// 1. SOFTRST (0x2A) = 0x07 – Perform a software Reset. The bits will be automatically cleared to ‘0’ by hardware.
@@ -226,8 +229,6 @@ void MRF24J40::reset() {
 }
 
 
-//TODO: Try out to set TX only and user TXRX mode only for the last byte of read
-
 void MRF24J40::writeShort(uint8_t addr, uint8_t value) {
 	assert_param(addr < 0x40);
 
@@ -268,18 +269,14 @@ uint8_t MRF24J40::readShort(uint8_t addr) {
 
 	props.gpioCS->BSRRH = props.pinCS;
 
-	props.spi->DR; props.spi->SR; // Clear the OVR flag
-
 	props.spi->DR = (addr << 1);
 
 	while (!(props.spi->SR & SPI_I2S_FLAG_TXE));
 	props.spi->DR = 0;
 
-	while (!(props.spi->SR & SPI_I2S_FLAG_RXNE));
-	props.spi->DR;
-
-	while (!(props.spi->SR & SPI_I2S_FLAG_RXNE));
-	result = props.spi->DR;
+	while (!(props.spi->SR & SPI_I2S_FLAG_TXE)); // BSY flag is set only after some delay, so it is compulsory to first wait for TXE, which ensures that BSY flag is set meanwhile
+	while (props.spi->SR & SPI_I2S_FLAG_BSY);
+	result = lastReadValue;
 
 	props.gpioCS->BSRRL = props.pinCS;
 
@@ -300,17 +297,12 @@ uint8_t MRF24J40::readLong(uint16_t addr) {
 	while (!(props.spi->SR & SPI_I2S_FLAG_TXE));
 	props.spi->DR = (addr << 5);
 
-	while (!(props.spi->SR & SPI_I2S_FLAG_RXNE));
-	props.spi->DR;
-
 	while (!(props.spi->SR & SPI_I2S_FLAG_TXE));
 	props.spi->DR = 0;
 
-	while (!(props.spi->SR & SPI_I2S_FLAG_RXNE));
-	props.spi->DR;
-
-	while (!(props.spi->SR & SPI_I2S_FLAG_RXNE));
-	result = props.spi->DR;
+	while (!(props.spi->SR & SPI_I2S_FLAG_TXE)); // BSY flag is set only after some delay, so it is compulsory to first wait for TXE, which ensures that BSY flag is set meanwhile
+	while (props.spi->SR & SPI_I2S_FLAG_BSY);
+	result = lastReadValue;
 
 	props.gpioCS->BSRRL = props.pinCS;
 
@@ -399,25 +391,44 @@ void MRF24J40::broadcastPacket(uint8_t* data, uint8_t dataLength) {
 	txCount++;
 }
 
-void MRF24J40::recvPacket(uint8_t (&data)[TOHMessage::MAX_RF_PACKET_LENGTH], uint8_t& dataLength, uint8_t (&fcs)[2], uint8_t& lqi, uint8_t& rssi) {
+bool MRF24J40::recvPacket(uint8_t (&data)[TOHMessage::MAX_RF_PACKET_LENGTH], uint8_t& dataLength, uint8_t (&srcPanId)[2], uint8_t (&srcSAddr)[2], uint8_t (&fcs)[2], uint8_t& lqi, uint8_t& rssi) {
+	constexpr auto enableRXAfterNoBytes = 50;
+
 	writeShort(BBREG1, 0x04); // Disable RX
-	dataLength = readLong(RXFIFO) - 2; // Read length
+	dataLength = readLong(RXFIFO) - 9; // Read length
+
+	uint8_t headerCtrl[2];
+	headerCtrl[0] = readLong(RXFIFO + 1);
+	headerCtrl[1] = readLong(RXFIFO + 2);
+
+	readLong(RXFIFO + 3); // seq no.
+
+	srcPanId[0] = readLong(RXFIFO + 4);
+	srcPanId[1] = readLong(RXFIFO + 5);
+
+	srcSAddr[0] = readLong(RXFIFO + 6);
+	srcSAddr[1] = readLong(RXFIFO + 7);
 
 	for (int idx = 0; idx < dataLength; idx++) {
-		data[idx] = readLong(RXFIFO + 1 + idx);
+		data[idx] = readLong(RXFIFO + 8 + idx);
+
+		if (idx == enableRXAfterNoBytes) {
+			writeShort(BBREG1, 0x00); // Enable RX sooner than before receiving the whole packet. This should work because we should be able to read the packet by the end before it gets overwritten
+		}
 	}
 
-	// TODO: Try to enable RX sooner - e.g. after 10 received packets
-	writeShort(BBREG1, 0x00); // Enable RX
+	if (dataLength <= enableRXAfterNoBytes) {
+		writeShort(BBREG1, 0x00); // Enable RX
+	}
 
-	// TODO: Parse header and return it as distinct from data payload
-
-	fcs[0] = readLong(RXFIFO + 1 + dataLength);
-	fcs[1] = readLong(RXFIFO + 1 + dataLength + 1);
-	lqi = readLong(RXFIFO + 1 + dataLength + 2);
-	rssi = readLong(RXFIFO + 1 + dataLength + 2);
+	fcs[0] = readLong(RXFIFO + 8 + dataLength);
+	fcs[1] = readLong(RXFIFO + 8 + dataLength + 1);
+	lqi = readLong(RXFIFO + 8 + dataLength + 2);
+	rssi = readLong(RXFIFO + 8 + dataLength + 3);
 
 	rxCount++;
+
+	return headerCtrl[0] == 0x01 && headerCtrl[1] == 0x80; // If this does not hold, the header as returned is damaged and the packet should not be considered.
 }
 
 

@@ -13,6 +13,11 @@ Timer::Timer(Properties& initProps) : props(initProps) {
 Timer::~Timer() {
 }
 
+void Timer::setPriority(uint8_t irqPreemptionPriority, uint8_t irqSubPriority) {
+	this->irqPreemptionPriority = irqPreemptionPriority;
+	this->irqSubPriority = irqSubPriority;
+}
+
 void Timer::init() {
 	props.clkCmdFun(props.clk, ENABLE);
 
@@ -23,6 +28,15 @@ void Timer::init() {
 	timInitStruct.TIM_ClockDivision = TIM_CKD_DIV1;
 	timInitStruct.TIM_RepetitionCounter = 0x00;
 	TIM_TimeBaseInit(props.tim, &timInitStruct);
+
+	NVIC_InitTypeDef NVIC_InitStructure;
+
+	NVIC_InitStructure.NVIC_IRQChannel = props.irqn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = irqPreemptionPriority;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = irqSubPriority;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+
+	NVIC_Init(&NVIC_InitStructure);
 
 	TIM_Cmd(props.tim, ENABLE);
 }

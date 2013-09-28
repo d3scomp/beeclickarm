@@ -12,7 +12,7 @@ monitor flash probe 0
 
 monitor reset halt
 
-monitor flash erase_sector 0 0 7
+monitor flash erase_sector 0 0 5
 monitor flash write_image build/beeclickarm.elf
 
 #monitor flash write_image erase build/beeclickarm.elf

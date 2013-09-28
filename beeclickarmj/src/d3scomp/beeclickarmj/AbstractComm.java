@@ -1,7 +1,6 @@
 package d3scomp.beeclickarmj;
 
 import java.nio.ByteBuffer;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BrokenBarrierException;
@@ -9,7 +8,9 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public abstract class AbstractComm implements Comm {
-
+	final static int MAXIMUM_TX_PACKET_IN_QUEUE = 3;
+	final static int MAXIMUM_EMPIRICAL_PACKET_DATA_LENGTH = 118;
+	
 	protected abstract byte[] readPort(int size) throws InterruptedException, CommException;
 	protected abstract void writePort(byte[] buffer) throws InterruptedException, CommException;
 	protected abstract void openPort() throws CommException;
@@ -139,15 +140,29 @@ public abstract class AbstractComm implements Comm {
 		}
 	}
 
-	private Map<Integer, TXPacket> txPackets = Collections.synchronizedMap(new HashMap<Integer, TXPacket>());
+	private Map<Integer, TXPacket> txPackets = new HashMap<Integer, TXPacket>();
 	private int txSeq;
 
 	@Override
-	public synchronized void broadcastPacket(TXPacket pkt)
-			throws CommException {
+	public void broadcastPacket(TXPacket pkt) throws CommException {
 		ensureOperational();
 
-		txPackets.put(txSeq, pkt);
+		if (pkt.getData().length > MAXIMUM_EMPIRICAL_PACKET_DATA_LENGTH) {
+			throw new CommException("Packet data length exceeds limit of " + MAXIMUM_EMPIRICAL_PACKET_DATA_LENGTH + " bytes.");
+		}
+		
+		synchronized (txPackets) {
+			while (txPackets.size() > MAXIMUM_TX_PACKET_IN_QUEUE) { // MAX_QUEUE_LENGTH on device side is 8, so this should be safe bound
+				try {
+					txPackets.wait();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+					return;
+				}
+			}
+
+			txPackets.put(txSeq, pkt);
+		}
 		pkt.setStatus(TXPacket.Status.PENDING);
 
 		TODMsg.SendPacket msg = new TODMsg.SendPacket();
@@ -251,6 +266,10 @@ public abstract class AbstractComm implements Comm {
 
 	@Override
 	public RXPacket receivePacket() throws CommException {
+		if (receivePacketListener != null) {
+			throw new CommException("Receive Packet Listener has been registered. This method should not be called.");
+		}
+		
 		ensureOperational();
 
 		try {
@@ -262,11 +281,24 @@ public abstract class AbstractComm implements Comm {
 		}
 	}
 
+	private ReceivePacketListener receivePacketListener;
+
+	@Override
+	public void setReceivePacketListener(ReceivePacketListener receivePacketListener) {
+		this.receivePacketListener = receivePacketListener;
+	}
+
 	private void rxHandle(TOHMsg msg) {
 		if (msg.type == TOHMsg.Type.PACKET_SENT) {
 			TOHMsg.PacketSent tmsg = (TOHMsg.PacketSent)msg;
 
-			TXPacket pkt = txPackets.remove(tmsg.seq);
+			TXPacket pkt;
+			
+			synchronized (txPackets) {
+				pkt = txPackets.remove(tmsg.seq);
+				txPackets.notifyAll();
+			}
+			
 			synchronized (pkt) {
 				pkt.setStatus(tmsg.status == 0 ? TXPacket.Status.SENT : TXPacket.Status.ERROR);
 				pkt.notifyAll();
@@ -275,11 +307,16 @@ public abstract class AbstractComm implements Comm {
 		} if (msg.type == TOHMsg.Type.RECV_PACKET) {
 			TOHMsg.RecvPacket tmsg = (TOHMsg.RecvPacket)msg;
 
-			RXPacket pkt = new RXPacket(tmsg.data, tmsg.rssi, tmsg.lqi, tmsg.fcs);
-			try {
-				rxQueue.put(pkt);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
+			RXPacket pkt = new RXPacket(tmsg.data, tmsg.srcPanId, tmsg.srcSAddr, tmsg.rssi, tmsg.lqi, tmsg.fcs);
+			
+			if (receivePacketListener != null) {
+				receivePacketListener.receivePacket(pkt);
+			} else {
+				try {
+					rxQueue.put(pkt);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
 			}
 
 		} else if (msg.type == TOHMsg.Type.CHANNEL_SET) {

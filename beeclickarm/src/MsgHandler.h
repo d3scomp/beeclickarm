@@ -12,7 +12,6 @@
 #include "MRF24J40.h"
 #include "TODQueue.h"
 #include "TOHQueue.h"
-#include <functional>
 
 class MsgHandler {
 public:
@@ -38,14 +37,20 @@ private:
 	uint8_t irqPreemptionPriority;
 	uint8_t irqSubPriority;
 
-	void messageAvailableListener();
-	void broadcastCompleteListener(bool isSuccessful);
-	void recvListener();
+	static void messageAvailableListenerStatic(void* obj);
+	static void broadcastCompleteListenerStatic(void* obj, bool isSuccessful);
+	static void recvListenerStatic(void* obj);
 
-	inline void waitOnReturn();
-	inline void wakeup();
+	inline void waitOnReturn() {
+		EXTI_ClearITPendingBit(props.extiLine);
+	}
 
-	static std::function<void(MsgHandler*)> msgHandlers[static_cast<int>(TODMessage::Type::count)];
+	inline void wakeup() {
+		EXTI_GenerateSWInterrupt(props.extiLine);
+	}
+
+	typedef void (MsgHandler::*MsgHandlerOne)();
+	static MsgHandlerOne msgHandlers[static_cast<int>(TODMessage::Type::count)];
 
 	void handleSync();
 	void handleSendPacket();

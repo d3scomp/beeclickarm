@@ -117,7 +117,9 @@ void SysTick_Handler(void) {
  * @retval None
  */
 void USART2_IRQHandler(void) {
+//	GPIOA->BSRRL = GPIO_Pin_1;
 	uartTOHD.txrxInterruptHandler();
+//	GPIOA->BSRRH = GPIO_Pin_1;
 }
 
 /**
@@ -144,7 +146,7 @@ void EXTI1_IRQHandler(void) {
  * @retval None
  */
 void EXTI2_IRQHandler(void) {
-	mrf.interruptHandler();
+	mrf.rfInterruptHandler();
 }
 
 /**
@@ -152,7 +154,10 @@ void EXTI2_IRQHandler(void) {
  * @param  None
  * @retval None
  */
-void SPI1_IRQHandler(void) {
+void SPI3_IRQHandler(void) {
+//	GPIOA->BSRRL = GPIO_Pin_5;
+	mrf.spiInterruptHandler();
+//	GPIOA->BSRRH = GPIO_Pin_5;
 }
 
 /**

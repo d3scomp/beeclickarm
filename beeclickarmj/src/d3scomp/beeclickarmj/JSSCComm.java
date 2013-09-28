@@ -19,7 +19,6 @@ public class JSSCComm extends AbstractComm {
 
 			port.openPort();
 			port.setParams(921600, 8, 1, 0, false, false);
-//			port.setParams(2400, 8, 1, 0, false, false);		
 		} catch (SerialPortException e) {
 			throw new CommException("Error establishing the serial communication.", e);
 		}
@@ -46,7 +45,14 @@ public class JSSCComm extends AbstractComm {
 			if (currentThread.isInterrupted()) {
 				throw new InterruptedException();
 			} else {
-				return port.readBytes(size);
+				byte[] result = port.readBytes(size);
+				
+//				for (int i=0;i<result.length;i++) {
+//					System.out.format("%02x ", result[i]);
+//				}
+//				System.out.println(" |");
+				
+				return result;
 			}
 		} catch (SerialPortException e) {
 			throw new CommException("Error reading serial port.", e);

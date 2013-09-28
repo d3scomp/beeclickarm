@@ -21,8 +21,9 @@ void MsgHandler::setPriority(uint8_t irqPreemptionPriority, uint8_t irqSubPriori
 }
 
 void MsgHandler::init() {
-	todQueue.setMessageAvailableListener([&,this]{ this->messageAvailableListener(); });
-	mrf.setBroadcastCompleteListener([&,this](bool isSuccessful){ this->broadcastCompleteListener(isSuccessful); });
+	todQueue.setMessageAvailableListener(messageAvailableListenerStatic, this);
+	mrf.setRecvListener(recvListenerStatic, this);
+	mrf.setBroadcastCompleteListener(broadcastCompleteListenerStatic, this);
 
 	EXTI_InitTypeDef EXTI_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
@@ -43,23 +44,16 @@ void MsgHandler::init() {
 	NVIC_Init(&NVIC_InitStructure);
 }
 
-inline void MsgHandler::waitOnReturn() {
-	EXTI_ClearITPendingBit(props.extiLine);
+void MsgHandler::messageAvailableListenerStatic(void *obj) {
+	MsgHandler* ths = static_cast<MsgHandler*>(obj);
+	ths->wakeup();
 }
 
-inline void MsgHandler::wakeup() {
-	EXTI_GenerateSWInterrupt(props.extiLine);
-}
-
-void MsgHandler::messageAvailableListener() {
-	wakeup();
-}
-
-std::function<void(MsgHandler*)> MsgHandler::msgHandlers[static_cast<int>(TODMessage::Type::count)] {
-	std::mem_fn(&MsgHandler::handleSync),
-	std::mem_fn(&MsgHandler::handleSendPacket),
-	std::mem_fn(&MsgHandler::handleSetChannel),
-	std::mem_fn(&MsgHandler::handleSetAddr)
+MsgHandler::MsgHandlerOne MsgHandler::msgHandlers[static_cast<int>(TODMessage::Type::count)] {
+	&MsgHandler::handleSync,
+	&MsgHandler::handleSendPacket,
+	&MsgHandler::handleSetChannel,
+	&MsgHandler::handleSetAddr
 };
 
 void MsgHandler::runInterruptHandler() {
@@ -67,7 +61,7 @@ void MsgHandler::runInterruptHandler() {
 		int msgTypeOrd = static_cast<int>(todQueue.getCurrentMsgRead().type);
 		assert_param(msgTypeOrd >= 0 || msgTypeOrd < static_cast<int>(TODMessage::Type::count));
 
-		msgHandlers[msgTypeOrd](this);
+		(this->*(msgHandlers[msgTypeOrd]))();
 	}
 
 	waitOnReturn();
@@ -94,9 +88,10 @@ void MsgHandler::handleSendPacket() {
 	}
 }
 
-void MsgHandler::broadcastCompleteListener(bool isSuccessful) {
-	TODMessage::SendPacket& inMsg = todQueue.getCurrentMsgRead().sendPacket;
-	TOHMessage::PacketSent& outMsg = tohQueue.getCurrentMsgWrite().packetSent;
+void MsgHandler::broadcastCompleteListenerStatic(void *obj, bool isSuccessful) {
+	MsgHandler* ths = static_cast<MsgHandler*>(obj);
+	TODMessage::SendPacket& inMsg = ths->todQueue.getCurrentMsgRead().sendPacket;
+	TOHMessage::PacketSent& outMsg = ths->tohQueue.getCurrentMsgWrite().packetSent;
 	outMsg.type = TOHMessage::Type::PACKET_SENT;
 	outMsg.seq[0] = inMsg.seq[0];
 	outMsg.seq[1] = inMsg.seq[1];
@@ -104,19 +99,23 @@ void MsgHandler::broadcastCompleteListener(bool isSuccessful) {
 	outMsg.seq[3] = inMsg.seq[3];
 	outMsg.status = !isSuccessful;
 
-	tohQueue.moveToNextMsgWrite();
-	todQueue.moveToNextMsgRead();
+	ths->tohQueue.moveToNextMsgWrite();
+	ths->todQueue.moveToNextMsgRead();
 
-	isSendPacketInProgress = false;
-	wakeup();
+	ths->isSendPacketInProgress = false;
+	ths->wakeup();
 }
 
-void MsgHandler::recvListener() {
-	TOHMessage::RecvPacket& outMsg = tohQueue.getCurrentMsgWrite().recvPacket;
-	outMsg.type = TOHMessage::Type::RECV_PACKET;
-	mrf.recvPacket(outMsg.data, outMsg.length, outMsg.fcs, outMsg.lqi, outMsg.rssi);
+void MsgHandler::recvListenerStatic(void* obj) {
+	MsgHandler* ths = static_cast<MsgHandler*>(obj);
 
-	tohQueue.moveToNextMsgWrite();
+	TOHMessage::RecvPacket& outMsg = ths->tohQueue.getCurrentMsgWrite().recvPacket;
+	outMsg.type = TOHMessage::Type::RECV_PACKET;
+	bool successfulReception = ths->mrf.recvPacket(outMsg.data, outMsg.length, outMsg.srcPanId, outMsg.srcSAddr, outMsg.fcs, outMsg.lqi, outMsg.rssi);
+
+	if (successfulReception) {
+		ths->tohQueue.moveToNextMsgWrite();
+	}
 }
 
 void MsgHandler::handleSetChannel() {

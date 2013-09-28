@@ -12,9 +12,19 @@
 uint32_t mainCycles;
 
 Timer::Properties tim6Props {
-	TIM6, RCC_APB1PeriphClockCmd, RCC_APB1Periph_TIM6
+	TIM6, RCC_APB1PeriphClockCmd, RCC_APB1Periph_TIM6, TIM6_DAC_IRQn
 };
 Timer delayTimer(tim6Props);
+
+LED::Properties test1LedProps {
+	GPIOA, GPIO_Pin_1, RCC_AHB1Periph_GPIOA
+};
+LED test1Led(test1LedProps);
+
+LED::Properties test2LedProps {
+	GPIOA, GPIO_Pin_5, RCC_AHB1Periph_GPIOA
+};
+LED test2Led(test2LedProps);
 
 LED::Properties greenLedProps {
 	GPIOD, GPIO_Pin_12, RCC_AHB1Periph_GPIOD
@@ -50,7 +60,8 @@ MRF24J40::Properties mrfProps {
 	RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_GPIOE | RCC_AHB1Periph_GPIOD,
 	RCC_APB1PeriphClockCmd, RCC_APB1Periph_SPI3,
 	GPIO_AF_SPI3,
-	EXTI_Line2, EXTI_PortSourceGPIOD, EXTI_PinSource2, EXTI2_IRQn
+	EXTI_Line2, EXTI_PortSourceGPIOD, EXTI_PinSource2, EXTI2_IRQn,
+	SPI3_IRQn
 };
 MRF24J40 mrf(mrfProps, mrfRecvPulseLed, mrfSendPulseLed);
 
@@ -68,8 +79,7 @@ MsgHandler::Properties msgHandlerProps {
 MsgHandler msgHandler(msgHandlerProps, mrf, todQueue, tohQueue);
 
 
-void handleInfoButtonInterrupt() {
-
+void handleInfoButtonInterrupt(void*) {
 	TOHMessage::Info& msg = tohQueue.getCurrentMsgWrite().info;
 
 	msg.type = TOHMessage::Type::INFO;
@@ -90,11 +100,13 @@ void handleInfoButtonInterrupt() {
 
 int main(void)
 {
-	NVIC_SetPriorityGrouping(NVIC_PriorityGroup_2);	// 2 bits for pre-emption priority, 2 bits for non-preemptive subpriority
-	uartTOHD.setPriority(0,0);
-	mrf.setPriority(1,0);
-	infoButton.setPriority(1,1);
-	msgHandler.setPriority(1,2);
+	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);	// 2 bits for pre-emption priority, 2 bits for non-preemptive subpriority
+	mrf.setSPIPriority(0,0);
+	delayTimer.setPriority(1,0);
+	uartTOHD.setPriority(1,1);
+	mrf.setRFPriority(2,0);
+	infoButton.setPriority(2,1);
+	msgHandler.setPriority(2,2);
 
 	/* Set SysTick to fire each 10ms */
 	RCC_ClocksTypeDef RCC_Clocks;
@@ -102,6 +114,9 @@ int main(void)
 	SysTick_Config(RCC_Clocks.HCLK_Frequency / 100);
 
 	delayTimer.init();
+
+	test1Led.init();
+	test2Led.init();
 
 	outOfSyncLed.init();
 	rxtxLed.init();
@@ -116,11 +131,11 @@ int main(void)
 	todQueue.init();
 	infoButton.init();
 
-	infoButton.setPressedListener(handleInfoButtonInterrupt);
+	infoButton.setPressedListener(handleInfoButtonInterrupt, nullptr);
 
-	NVIC_SystemLPConfig(NVIC_LP_SLEEPONEXIT, ENABLE);
+	NVIC_SystemLPConfig(NVIC_LP_SLEEPONEXIT, ENABLE); // This ..
 	while (1) {
-		__WFI();
+		__WFI(); // ... and this has to be commented out when debugging.
 		mainCycles++; // This is to measure how many times we wake up from WFI. In fact, we should never wake up.
 	}
 }
