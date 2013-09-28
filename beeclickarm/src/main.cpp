@@ -16,6 +16,7 @@ Timer::Properties tim6Props {
 };
 Timer delayTimer(tim6Props);
 
+/*
 LED::Properties test1LedProps {
 	GPIOA, GPIO_Pin_1, RCC_AHB1Periph_GPIOA
 };
@@ -25,6 +26,7 @@ LED::Properties test2LedProps {
 	GPIOA, GPIO_Pin_5, RCC_AHB1Periph_GPIOA
 };
 LED test2Led(test2LedProps);
+*/
 
 LED::Properties greenLedProps {
 	GPIOD, GPIO_Pin_12, RCC_AHB1Periph_GPIOD
@@ -102,9 +104,10 @@ int main(void)
 {
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);	// 2 bits for pre-emption priority, 2 bits for non-preemptive subpriority
 	mrf.setSPIPriority(0,0);
-	delayTimer.setPriority(1,0);
-	uartTOHD.setPriority(1,1);
+	uartTOHD.setPriority(1,0);
+	delayTimer.setPriority(1,1);
 	mrf.setRFPriority(2,0);
+	NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), 2, 1));
 	infoButton.setPriority(2,1);
 	msgHandler.setPriority(2,2);
 
@@ -113,16 +116,19 @@ int main(void)
 	RCC_GetClocksFreq(&RCC_Clocks);
 	SysTick_Config(RCC_Clocks.HCLK_Frequency / 100);
 
+
 	delayTimer.init();
 
-	test1Led.init();
-	test2Led.init();
+//	test1Led.init();
+//	test2Led.init();
 
 	outOfSyncLed.init();
 	rxtxLed.init();
 	mrfSendLed.init();
 	mrfRecvLed.init();
 	rxtxPulseLed.init();
+	mrfSendPulseLed.init();
+	mrfRecvPulseLed.init();
 
 	uartTOHD.init();
 	mrf.init();

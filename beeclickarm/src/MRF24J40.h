@@ -45,7 +45,7 @@ public:
 	typedef void (*RecvListener)(void *);
 	typedef void (*BroadcastCompleteListener)(void *, bool);
 
-	MRF24J40(Properties& initProps, PulseLED recvLed, PulseLED sendLed);
+	MRF24J40(Properties& initProps, PulseLED& recvLed, PulseLED& sendLed);
 	~MRF24J40();
 
 	void init();
@@ -101,8 +101,8 @@ public:
 private:
 	Properties props;
 
-	PulseLED recvLed;
-	PulseLED sendLed;
+	PulseLED& recvLed;
+	PulseLED& sendLed;
 
 	uint8_t channel;
 	uint8_t panId[2];

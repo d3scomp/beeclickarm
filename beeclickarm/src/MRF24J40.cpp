@@ -8,7 +8,7 @@
 #include "MRF24J40.h"
 #include "main.h"
 
-MRF24J40::MRF24J40(Properties& initProps, PulseLED recvLed, PulseLED sendLed) : props(initProps), recvLed(recvLed), sendLed(sendLed) {
+MRF24J40::MRF24J40(Properties& initProps, PulseLED& recvLed, PulseLED& sendLed) : props(initProps), recvLed(recvLed), sendLed(sendLed) {
 }
 
 MRF24J40::~MRF24J40() {
@@ -355,6 +355,8 @@ uint16_t MRF24J40::readSAddr() {
 
 void MRF24J40::broadcastPacket(uint8_t* data, uint8_t dataLength) {
 
+	sendLed.pulse();
+
 	int txReg = TXNFIFO;
 
 	writeLong(txReg++, 7); // Header length
@@ -393,6 +395,8 @@ void MRF24J40::broadcastPacket(uint8_t* data, uint8_t dataLength) {
 
 bool MRF24J40::recvPacket(uint8_t (&data)[TOHMessage::MAX_RF_PACKET_LENGTH], uint8_t& dataLength, uint8_t (&srcPanId)[2], uint8_t (&srcSAddr)[2], uint8_t (&fcs)[2], uint8_t& lqi, uint8_t& rssi) {
 	constexpr auto enableRXAfterNoBytes = 50;
+
+	recvLed.pulse();
 
 	writeShort(BBREG1, 0x04); // Disable RX
 	dataLength = readLong(RXFIFO) - 9; // Read length

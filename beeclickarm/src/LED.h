@@ -46,7 +46,9 @@ private:
 
 	void tick();
 
-	static PulseLED* tickListener;
+	static constexpr auto MAX_TICK_LISTENERS = 5;
+	static PulseLED* tickListeners[MAX_TICK_LISTENERS];
+	static int tickListenersNum;
 };
 
 #endif /* LED_H_ */

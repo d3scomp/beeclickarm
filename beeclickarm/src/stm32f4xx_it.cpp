@@ -117,7 +117,7 @@ void SysTick_Handler(void) {
  * @retval None
  */
 void USART2_IRQHandler(void) {
-//	GPIOA->BSRRL = GPIO_Pin_1;
+//	GPIOA->BSRRL = GPIO_Pin_1;  // Requires test1Led to be initialized in main.cpp
 	uartTOHD.txrxInterruptHandler();
 //	GPIOA->BSRRH = GPIO_Pin_1;
 }
@@ -155,7 +155,7 @@ void EXTI2_IRQHandler(void) {
  * @retval None
  */
 void SPI3_IRQHandler(void) {
-//	GPIOA->BSRRL = GPIO_Pin_5;
+//	GPIOA->BSRRL = GPIO_Pin_5;    // Requires test2Led to be initialized in main.cpp
 	mrf.spiInterruptHandler();
 //	GPIOA->BSRRH = GPIO_Pin_5;
 }

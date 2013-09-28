@@ -36,11 +36,13 @@ void LED::off() {
 	props.gpio->BSRRH = props.pin;
 }
 
-
-PulseLED* PulseLED::tickListener;
+PulseLED* PulseLED::tickListeners[MAX_TICK_LISTENERS];
+int PulseLED::tickListenersNum = 0;
 
 void PulseLED::tickInterruptHandler() {
-	tickListener->tick();
+	for (int idx = 0; idx < tickListenersNum; idx++) {
+		tickListeners[idx]->tick();
+	}
 }
 
 
@@ -51,7 +53,8 @@ PulseLED::~PulseLED() {
 }
 
 void PulseLED::init() {
-	tickListener = this;
+	assert_param(tickListenersNum < MAX_TICK_LISTENERS);
+	tickListeners[tickListenersNum++] = this;
 }
 
 void PulseLED::pulse() {
