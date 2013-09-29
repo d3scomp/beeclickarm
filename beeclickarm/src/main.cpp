@@ -68,9 +68,37 @@ MRF24J40::Properties mrfProps {
 MRF24J40 mrf(mrfProps, mrfRecvPulseLed, mrfSendPulseLed);
 
 UART::Properties uart2Props {
-	GPIOA, USART2, GPIO_Pin_2, GPIO_Pin_3, GPIO_PinSource2, GPIO_PinSource3, RCC_APB1PeriphClockCmd, RCC_AHB1Periph_GPIOA, RCC_APB1Periph_USART2, GPIO_AF_USART2, USART2_IRQn
+	GPIOA, USART2,
+	GPIO_Pin_2, GPIO_Pin_3, GPIO_PinSource2, GPIO_PinSource3,
+	RCC_APB1PeriphClockCmd, RCC_AHB1Periph_GPIOA, RCC_APB1Periph_USART2, GPIO_AF_USART2, USART2_IRQn,
+	921600
 };
 UART uartTOHD(uart2Props);
+
+UART::Properties uart6Props {
+	GPIOC, USART6,
+	GPIO_Pin_6, GPIO_Pin_7, GPIO_PinSource6, GPIO_PinSource7,
+	RCC_APB2PeriphClockCmd, RCC_AHB1Periph_GPIOC, RCC_APB2Periph_USART6, GPIO_AF_USART6, USART6_IRQn,
+	9600
+};
+UART uartGPS(uart6Props);
+
+UART::Properties uart3Props {
+	GPIOB, USART3,
+	GPIO_Pin_10, GPIO_Pin_11, GPIO_PinSource10, GPIO_PinSource11,
+	RCC_APB1PeriphClockCmd, RCC_AHB1Periph_GPIOB, RCC_APB1Periph_USART3, GPIO_AF_USART3, USART3_IRQn,
+	4800
+};
+UART uartGPS2(uart3Props);
+
+GPSL10 gps(uartGPS);
+
+GPSL30::Properties gps2Props {
+	GPIOC, GPIOE, GPIOE,
+	GPIO_Pin_2, GPIO_Pin_12, GPIO_Pin_13,
+	RCC_AHB1Periph_GPIOC, RCC_AHB1Periph_GPIOE, RCC_AHB1Periph_GPIOE
+};
+GPSL30 gps2(gps2Props, uartGPS2);
 
 TODQueue todQueue(uartTOHD, rxtxPulseLed, outOfSyncLed);
 TOHQueue tohQueue(uartTOHD, rxtxPulseLed);
@@ -78,8 +106,7 @@ TOHQueue tohQueue(uartTOHD, rxtxPulseLed);
 MsgHandler::Properties msgHandlerProps {
 	EXTI_Line1, EXTI1_IRQn
 };
-MsgHandler msgHandler(msgHandlerProps, mrf, todQueue, tohQueue);
-
+MsgHandler msgHandler(msgHandlerProps, mrf, gps, gps2, todQueue, tohQueue);
 
 void handleInfoButtonInterrupt(void*) {
 	TOHMessage::Info& msg = tohQueue.getCurrentMsgWrite().info;
@@ -92,8 +119,10 @@ void handleInfoButtonInterrupt(void*) {
 			"panId: %04x\n"
 			"sAddr: %04x\n"
 			"channelNo: %d\n"
-			"mainCycles: %lu\n",
-			mrf.getTXCount(), mrf.getRXCount(), mrf.readPANId(), mrf.readSAddr(), mrf.readChannel(), mainCycles);
+			"mainCycles: %lu\n"
+			"GPS: %s\n"
+			"GPS2: %s\n",
+			mrf.getTXCount(), mrf.getRXCount(), mrf.readPANId(), mrf.readSAddr(), mrf.readChannel(), mainCycles, gps.getSentence(), gps2.getSentence());
 
 	msg.length = std::strlen(msg.text);
 
@@ -106,6 +135,7 @@ int main(void)
 	mrf.setSPIPriority(0,0);
 	uartTOHD.setPriority(1,0);
 	delayTimer.setPriority(1,1);
+	uartGPS.setPriority(1,2);
 	mrf.setRFPriority(2,0);
 	NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), 2, 1));
 	infoButton.setPriority(2,1);
@@ -135,9 +165,16 @@ int main(void)
 	tohQueue.init();
 	msgHandler.init();
 	todQueue.init();
-	infoButton.init();
+
+	uartGPS.init();
+	gps.init();
+
+	uartGPS2.init();
+	gps2.init();
 
 	infoButton.setPressedListener(handleInfoButtonInterrupt, nullptr);
+	infoButton.init();
+
 
 	NVIC_SystemLPConfig(NVIC_LP_SLEEPONEXIT, ENABLE); // This ..
 	while (1) {

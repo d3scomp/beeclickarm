@@ -20,7 +20,7 @@ public:
 	};
 
 	Timer(Properties& initProps);
-	virtual ~Timer();
+	~Timer();
 
 	void setPriority(uint8_t irqPreemptionPriority, uint8_t irqSubPriority);
 	void init();

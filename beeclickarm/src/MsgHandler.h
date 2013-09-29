@@ -10,6 +10,7 @@
 
 #include "stm32f4xx.h"
 #include "MRF24J40.h"
+#include "GPS.h"
 #include "TODQueue.h"
 #include "TOHQueue.h"
 
@@ -20,7 +21,7 @@ public:
 		IRQn irqn;
 	};
 
-	MsgHandler(Properties& initProps, MRF24J40 &mrf, TODQueue& todQueue, TOHQueue& tohQueue);
+	MsgHandler(Properties& initProps, MRF24J40 &mrf, GPSL10& gps, GPSL10& gps2, TODQueue& todQueue, TOHQueue& tohQueue);
 	~MsgHandler();
 
 	void setPriority(uint8_t irqPreemptionPriority, uint8_t irqSubPriority);
@@ -31,6 +32,8 @@ private:
 	Properties props;
 
 	MRF24J40& mrf;
+	GPSL10& gps;
+	GPSL10& gps2;
 	TODQueue& todQueue;
 	TOHQueue& tohQueue;
 
@@ -40,6 +43,9 @@ private:
 	static void messageAvailableListenerStatic(void* obj);
 	static void broadcastCompleteListenerStatic(void* obj, bool isSuccessful);
 	static void recvListenerStatic(void* obj);
+	static void sentenceListenerStatic(void *obj);
+
+	void sendGPSSentence();
 
 	inline void waitOnReturn() {
 		EXTI_ClearITPendingBit(props.extiLine);
@@ -58,6 +64,8 @@ private:
 	void handleSetAddr();
 
 	bool isSendPacketInProgress;
+
+	bool isNewGPSSentenceAvailable;
 };
 
 #endif /* MSGHANDLER_H_ */

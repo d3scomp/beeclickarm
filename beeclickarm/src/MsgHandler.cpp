@@ -8,8 +8,8 @@
 #include "MsgHandler.h"
 #include <cstdio>
 
-MsgHandler::MsgHandler(Properties& initProps, MRF24J40 &mrf, TODQueue& todQueue, TOHQueue& tohQueue) :
-		props(initProps), mrf(mrf), todQueue(todQueue), tohQueue(tohQueue) {
+MsgHandler::MsgHandler(Properties& initProps, MRF24J40 &mrf, GPSL10& gps, GPSL10& gps2, TODQueue& todQueue, TOHQueue& tohQueue) :
+		props(initProps), mrf(mrf), gps(gps), gps2(gps2), todQueue(todQueue), tohQueue(tohQueue) {
 }
 
 MsgHandler::~MsgHandler() {
@@ -24,18 +24,20 @@ void MsgHandler::init() {
 	todQueue.setMessageAvailableListener(messageAvailableListenerStatic, this);
 	mrf.setRecvListener(recvListenerStatic, this);
 	mrf.setBroadcastCompleteListener(broadcastCompleteListenerStatic, this);
+	gps.setSentenceListener(sentenceListenerStatic, this);
+	gps2.setSentenceListener(sentenceListenerStatic, this);
 
 	EXTI_InitTypeDef EXTI_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
 
-	// Configure Button EXTI line
+	// Configure trigger EXTI line
 	EXTI_InitStructure.EXTI_Line = props.extiLine;
 	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
 	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
 	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
 	EXTI_Init(&EXTI_InitStructure);
 
-	// Enable and set Button EXTI Interrupt to the lowest priority
+	// Enable and set trigger EXTI Interrupt to the lowest priority
 	NVIC_InitStructure.NVIC_IRQChannel = props.irqn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = irqPreemptionPriority;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = irqSubPriority;
@@ -49,6 +51,21 @@ void MsgHandler::messageAvailableListenerStatic(void *obj) {
 	ths->wakeup();
 }
 
+void MsgHandler::sendGPSSentence() {
+	TOHMessage::Info& msg = tohQueue.getCurrentMsgWrite().info;
+
+	msg.type = TOHMessage::Type::INFO;
+	std::sprintf(msg.text,
+		"GPSL10: %s\n"
+		"GPSL30: %s\n",
+		gps.getSentence(),
+		gps2.getSentence());
+	msg.length = std::strlen(msg.text);
+
+	tohQueue.moveToNextMsgWrite();
+}
+
+
 MsgHandler::MsgHandlerOne MsgHandler::msgHandlers[static_cast<int>(TODMessage::Type::count)] {
 	&MsgHandler::handleSync,
 	&MsgHandler::handleSendPacket,
@@ -57,6 +74,12 @@ MsgHandler::MsgHandlerOne MsgHandler::msgHandlers[static_cast<int>(TODMessage::T
 };
 
 void MsgHandler::runInterruptHandler() {
+	if (isNewGPSSentenceAvailable) {
+		sendGPSSentence();
+
+		isNewGPSSentenceAvailable = false;
+	}
+
 	if (todQueue.isMsgReadAvailable()) {
 		int msgTypeOrd = static_cast<int>(todQueue.getCurrentMsgRead().type);
 		assert_param(msgTypeOrd >= 0 || msgTypeOrd < static_cast<int>(TODMessage::Type::count));
@@ -86,6 +109,12 @@ void MsgHandler::handleSendPacket() {
 
 		isSendPacketInProgress = true;
 	}
+}
+
+void MsgHandler::sentenceListenerStatic(void* obj) {
+	MsgHandler* ths = static_cast<MsgHandler*>(obj);
+	ths->isNewGPSSentenceAvailable = true;
+	ths->wakeup();
 }
 
 void MsgHandler::broadcastCompleteListenerStatic(void *obj, bool isSuccessful) {

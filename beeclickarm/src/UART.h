@@ -9,7 +9,6 @@
 #define UART_H_
 
 #include "stm32f4xx.h"
-#include "stm32f4xx_it.h"
 
 class UART {
 public:
@@ -22,6 +21,7 @@ public:
 		uint32_t clkGPIO, clkUSART;
 		uint8_t afConfig;
 		uint8_t irqn;
+		uint32_t baudRate;
 	};
 
 	UART(Properties& initProps);
@@ -53,7 +53,7 @@ public:
 	}
 
 	inline void send(uint8_t ch) {
-		props.usart->DR= ch;
+		props.usart->DR = ch;
 	}
 
 	inline bool canSend() {
@@ -71,6 +71,9 @@ public:
 private:
 	uint8_t irqPreemptionPriority;
 	uint8_t irqSubPriority;
+
+	bool rxIntEnabled;
+	bool txIntEnabled;
 
 	Listener sendListener;
 	void *sendListenerObj;

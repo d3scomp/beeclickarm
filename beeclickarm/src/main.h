@@ -18,6 +18,7 @@
 #include "MsgHandler.h"
 #include "MRF24J40.h"
 #include "Timer.h"
+#include "GPS.h"
 
 extern uint32_t mainCycles;
 
@@ -26,6 +27,10 @@ extern UART uartTOHD;
 extern MsgHandler msgHandler;
 extern Timer delayTimer;
 extern MRF24J40 mrf;
+extern UART uartGPS;
+extern GPSL10 gps;
+extern UART uartGPS2;
+extern GPSL30 gps2;
 
 
 #endif /* MAIN_H_ */

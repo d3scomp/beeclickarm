@@ -14,11 +14,13 @@ void UART::clearBreakOrError() {
 }
 
 void UART::enableSendEvents() {
-	USART_ITConfig(USART2, USART_IT_TXE, ENABLE);
+	txIntEnabled = true;
+	USART_ITConfig(props.usart, USART_IT_TXE, ENABLE);
 }
 
 void UART::disableSendEvents() {
-	USART_ITConfig(USART2, USART_IT_TXE, DISABLE);
+	USART_ITConfig(props.usart, USART_IT_TXE, DISABLE);
+	txIntEnabled = false;
 }
 
 void UART::setSendListener(Listener sendReadyListener, void *obj) {
@@ -27,11 +29,13 @@ void UART::setSendListener(Listener sendReadyListener, void *obj) {
 }
 
 void UART::enableRecvEvents() {
-	USART_ITConfig(USART2, USART_IT_RXNE, ENABLE);
+	rxIntEnabled = true;
+	USART_ITConfig(props.usart, USART_IT_RXNE, ENABLE);
 }
 
 void UART::disableRecvEvents() {
-	USART_ITConfig(USART2, USART_IT_RXNE, DISABLE);
+	USART_ITConfig(props.usart, USART_IT_RXNE, DISABLE);
+	rxIntEnabled = false;
 }
 
 void UART::setRecvListener(Listener recvReadyListener, void *obj) {
@@ -40,12 +44,12 @@ void UART::setRecvListener(Listener recvReadyListener, void *obj) {
 }
 
 void UART::txrxInterruptHandler() {
-	if (canRecv()) {
+	if (rxIntEnabled && canRecv()) {
 		assert_param(recvListener);
 		recvListener(recvListenerObj);
 	}
 
-	if (canSend()) {
+	if (txIntEnabled && canSend()) {
 		assert_param(sendListener);
 		sendListener(sendListenerObj);
 	}
@@ -85,9 +89,7 @@ void UART::init() {
 	props.clkUSARTCmdFun(props.clkUSART, ENABLE);
 
 	USART_InitTypeDef usartInitStruct;
-	usartInitStruct.USART_BaudRate = 921600;
-//	usartInitStruct.USART_BaudRate = 460800;
-//	usartInitStruct.USART_BaudRate = 115200;
+	usartInitStruct.USART_BaudRate = props.baudRate;
 	usartInitStruct.USART_WordLength = USART_WordLength_8b;
 	usartInitStruct.USART_StopBits = USART_StopBits_1;
 	usartInitStruct.USART_Parity = USART_Parity_No;
