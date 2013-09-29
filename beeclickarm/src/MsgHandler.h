@@ -21,7 +21,7 @@ public:
 		IRQn irqn;
 	};
 
-	MsgHandler(Properties& initProps, MRF24J40 &mrf, GPSL10& gps, GPSL10& gps2, TODQueue& todQueue, TOHQueue& tohQueue);
+	MsgHandler(Properties& initProps, MRF24J40 &mrf, GPSL30& gps, TODQueue& todQueue, TOHQueue& tohQueue);
 	~MsgHandler();
 
 	void setPriority(uint8_t irqPreemptionPriority, uint8_t irqSubPriority);
@@ -32,8 +32,7 @@ private:
 	Properties props;
 
 	MRF24J40& mrf;
-	GPSL10& gps;
-	GPSL10& gps2;
+	GPSL30& gps;
 	TODQueue& todQueue;
 	TOHQueue& tohQueue;
 

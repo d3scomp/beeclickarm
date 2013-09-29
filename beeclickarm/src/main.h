@@ -28,9 +28,7 @@ extern MsgHandler msgHandler;
 extern Timer delayTimer;
 extern MRF24J40 mrf;
 extern UART uartGPS;
-extern GPSL10 gps;
-extern UART uartGPS2;
-extern GPSL30 gps2;
+extern GPSL30 gps;
 
 
 #endif /* MAIN_H_ */

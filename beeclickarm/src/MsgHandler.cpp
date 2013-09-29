@@ -6,10 +6,10 @@
  */
 
 #include "MsgHandler.h"
-#include <cstdio>
+#include <cstring>
 
-MsgHandler::MsgHandler(Properties& initProps, MRF24J40 &mrf, GPSL10& gps, GPSL10& gps2, TODQueue& todQueue, TOHQueue& tohQueue) :
-		props(initProps), mrf(mrf), gps(gps), gps2(gps2), todQueue(todQueue), tohQueue(tohQueue) {
+MsgHandler::MsgHandler(Properties& initProps, MRF24J40 &mrf, GPSL30& gps, TODQueue& todQueue, TOHQueue& tohQueue) :
+		props(initProps), mrf(mrf), gps(gps), todQueue(todQueue), tohQueue(tohQueue) {
 }
 
 MsgHandler::~MsgHandler() {
@@ -25,7 +25,6 @@ void MsgHandler::init() {
 	mrf.setRecvListener(recvListenerStatic, this);
 	mrf.setBroadcastCompleteListener(broadcastCompleteListenerStatic, this);
 	gps.setSentenceListener(sentenceListenerStatic, this);
-	gps2.setSentenceListener(sentenceListenerStatic, this);
 
 	EXTI_InitTypeDef EXTI_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
@@ -52,14 +51,10 @@ void MsgHandler::messageAvailableListenerStatic(void *obj) {
 }
 
 void MsgHandler::sendGPSSentence() {
-	TOHMessage::Info& msg = tohQueue.getCurrentMsgWrite().info;
+	TOHMessage::GPS& msg = tohQueue.getCurrentMsgWrite().gps;
 
-	msg.type = TOHMessage::Type::INFO;
-	std::sprintf(msg.text,
-		"GPSL10: %s\n"
-		"GPSL30: %s\n",
-		gps.getSentence(),
-		gps2.getSentence());
+	msg.type = TOHMessage::Type::GPS;
+	std::strcpy(msg.text, gps.getSentence());
 	msg.length = std::strlen(msg.text);
 
 	tohQueue.moveToNextMsgWrite();

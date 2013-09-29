@@ -79,26 +79,16 @@ UART::Properties uart6Props {
 	GPIOC, USART6,
 	GPIO_Pin_6, GPIO_Pin_7, GPIO_PinSource6, GPIO_PinSource7,
 	RCC_APB2PeriphClockCmd, RCC_AHB1Periph_GPIOC, RCC_APB2Periph_USART6, GPIO_AF_USART6, USART6_IRQn,
-	9600
+	4800 // 9600 for L10, 4800 for L30
 };
 UART uartGPS(uart6Props);
 
-UART::Properties uart3Props {
-	GPIOB, USART3,
-	GPIO_Pin_10, GPIO_Pin_11, GPIO_PinSource10, GPIO_PinSource11,
-	RCC_APB1PeriphClockCmd, RCC_AHB1Periph_GPIOB, RCC_APB1Periph_USART3, GPIO_AF_USART3, USART3_IRQn,
-	4800
+GPSL30::Properties gpsProps {
+	GPIOB, GPIOD, GPIOC,
+	GPIO_Pin_0, GPIO_Pin_6, GPIO_Pin_8,
+	RCC_AHB1Periph_GPIOB, RCC_AHB1Periph_GPIOD, RCC_AHB1Periph_GPIOC
 };
-UART uartGPS2(uart3Props);
-
-GPSL10 gps(uartGPS);
-
-GPSL30::Properties gps2Props {
-	GPIOC, GPIOE, GPIOE,
-	GPIO_Pin_2, GPIO_Pin_12, GPIO_Pin_13,
-	RCC_AHB1Periph_GPIOC, RCC_AHB1Periph_GPIOE, RCC_AHB1Periph_GPIOE
-};
-GPSL30 gps2(gps2Props, uartGPS2);
+GPSL30 gps(gpsProps, uartGPS); // This can be used for L10 as well. It has the three pins PWR, RST, WUP unconnected
 
 TODQueue todQueue(uartTOHD, rxtxPulseLed, outOfSyncLed);
 TOHQueue tohQueue(uartTOHD, rxtxPulseLed);
@@ -106,7 +96,7 @@ TOHQueue tohQueue(uartTOHD, rxtxPulseLed);
 MsgHandler::Properties msgHandlerProps {
 	EXTI_Line1, EXTI1_IRQn
 };
-MsgHandler msgHandler(msgHandlerProps, mrf, gps, gps2, todQueue, tohQueue);
+MsgHandler msgHandler(msgHandlerProps, mrf, gps, todQueue, tohQueue);
 
 void handleInfoButtonInterrupt(void*) {
 	TOHMessage::Info& msg = tohQueue.getCurrentMsgWrite().info;
@@ -120,9 +110,8 @@ void handleInfoButtonInterrupt(void*) {
 			"sAddr: %04x\n"
 			"channelNo: %d\n"
 			"mainCycles: %lu\n"
-			"GPS: %s\n"
-			"GPS2: %s\n",
-			mrf.getTXCount(), mrf.getRXCount(), mrf.readPANId(), mrf.readSAddr(), mrf.readChannel(), mainCycles, gps.getSentence(), gps2.getSentence());
+			"GPS: %s\n",
+			mrf.getTXCount(), mrf.getRXCount(), mrf.readPANId(), mrf.readSAddr(), mrf.readChannel(), mainCycles, gps.getSentence());
 
 	msg.length = std::strlen(msg.text);
 
@@ -168,9 +157,6 @@ int main(void)
 
 	uartGPS.init();
 	gps.init();
-
-	uartGPS2.init();
-	gps2.init();
 
 	infoButton.setPressedListener(handleInfoButtonInterrupt, nullptr);
 	infoButton.init();

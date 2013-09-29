@@ -10,7 +10,7 @@ abstract class TOHMsg {
 	Type type;
 	
 	static enum Type {
-		SYNC, RECV_PACKET, PACKET_SENT, CHANNEL_SET, ADDR_SET, INFO
+		SYNC, RECV_PACKET, PACKET_SENT, CHANNEL_SET, ADDR_SET, GPS, INFO
 	}
 	
 	protected static interface TOHMsgFactory {
@@ -52,6 +52,14 @@ abstract class TOHMsg {
 				return AddrSet.getExpectedSizeLowerBound(buf);
 			}
 		},
+		new TOHMsgFactory() {
+			public TOHMsg newInstance() {
+				return new GPS();
+			}
+			public int getExpectedSize(ByteBuffer buf) {
+				return GPS.getExpectedSizeLowerBound(buf);
+			}
+		},		
 		new TOHMsgFactory() {
 			public TOHMsg newInstance() {
 				return new Info();
@@ -168,6 +176,31 @@ abstract class TOHMsg {
 		
 		static int getExpectedSizeLowerBound(ByteBuffer buf) {
 			return typeSize + 4;
+		}
+	}
+
+	static class GPS extends TOHMsg {
+		static final int MAX_GPS_SENTENCE_LENGTH = 255;
+		String text;
+		
+		GPS() {
+			type = Type.GPS;
+		}
+		
+		protected void fromBytes(ByteBuffer buf) {
+			super.fromBytes(buf);
+			
+			int length = buf.get() & 0xFF;
+			assert(length <= MAX_GPS_SENTENCE_LENGTH);
+			
+			byte[] data = new byte[length];
+			buf.get(data);
+			
+			text = new String(data);
+		}
+		
+		static int getExpectedSizeLowerBound(ByteBuffer buf) {
+			return typeSize + 1 + (buf.position() == 1 ? 0 : (buf.get(1) & 0xFF));
 		}
 	}
 

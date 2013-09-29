@@ -132,15 +132,6 @@ void USART6_IRQHandler(void) {
 }
 
 /**
- * @brief  This function handles USART2 global interrupt request.
- * @param  None
- * @retval None
- */
-void USART3_IRQHandler(void) {
-	uartGPS2.txrxInterruptHandler();
-}
-
-/**
  * @brief  This function handles EXTI0_IRQ Handler.
  * @param  None
  * @retval None

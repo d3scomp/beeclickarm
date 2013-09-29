@@ -14,6 +14,7 @@ size_t (*TOHMessage::sizeHandlers[static_cast<int>(Type::count)])(TOHMessage&) {
 	[](TOHMessage &msg){ return sizeof(TOHMessage::PacketSent); },
 	[](TOHMessage &msg){ return sizeof(TOHMessage::ChannelSet); },
 	[](TOHMessage &msg){ return sizeof(TOHMessage::AddrSet); },
+	[](TOHMessage &msg){ return sizeof(TOHMessage::Type) + sizeof(uint8_t) + msg.gps.length; },
 	[](TOHMessage &msg){ return sizeof(TOHMessage::Type) + sizeof(uint8_t) + msg.info.length; }
 };
 

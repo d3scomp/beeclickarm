@@ -342,6 +342,11 @@ public abstract class AbstractComm implements Comm {
 				e.printStackTrace();
 			}
 
+		} else if (msg.type == TOHMsg.Type.GPS) {
+			TOHMsg.GPS tmsg = (TOHMsg.GPS)msg;
+			System.out.println("GPS: " + tmsg.text);
+			// TODO: API for GPS coordinates 
+
 		} else if (msg.type == TOHMsg.Type.INFO) {
 			TOHMsg.Info tmsg = (TOHMsg.Info)msg;
 			System.out.println("===== INFO =====");

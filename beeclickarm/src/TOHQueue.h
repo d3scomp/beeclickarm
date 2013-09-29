@@ -10,6 +10,7 @@
 
 #include "stm32f4xx.h"
 #include "TODQueue.h"
+#include "GPS.h"
 
 struct TOHMessage {
 public:
@@ -17,7 +18,7 @@ public:
 	static constexpr auto MAX_RF_PACKET_LENGTH = TODMessage::MAX_RF_PACKET_LENGTH;
 
 	enum class Type : uint8_t {
-		SYNC, RECV_PACKET, PACKET_SENT, CHANNEL_SET, ADDR_SET, INFO, count
+		SYNC, RECV_PACKET, PACKET_SENT, CHANNEL_SET, ADDR_SET, GPS, INFO, count
 	};
 
 	struct Sync {
@@ -53,6 +54,12 @@ public:
 		uint8_t sAddr[2];
 	};
 
+	struct GPS {
+		Type type;
+		uint8_t length;
+		char text[GPSL10::MAX_GPS_SENTENCE_LENGTH];
+	};
+
 	struct Info {
 		Type type;
 		uint8_t length;
@@ -66,6 +73,7 @@ public:
 		PacketSent packetSent;
 		ChannelSet channelSet;
 		AddrSet addrSet;
+		GPS gps;
 		Info info;
 	};
 
