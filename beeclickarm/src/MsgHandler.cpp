@@ -193,7 +193,7 @@ void MsgHandler::handleGetTemperature() {
 
 	int16_t temp = sht1x.readTemperature();
 
-	TOHMessage::Temperateure& outMsg = tohQueue.getCurrentMsgWrite().temperature;
+	TOHMessage::Temperature& outMsg = tohQueue.getCurrentMsgWrite().temperature;
 	outMsg.type = TOHMessage::Type::TEMPERATURE;
 	outMsg.temperature = temp;
 

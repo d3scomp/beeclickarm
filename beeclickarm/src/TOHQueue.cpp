@@ -17,7 +17,7 @@ size_t (*TOHMessage::sizeHandlers[static_cast<int>(Type::count)])(TOHMessage&) {
 	[](TOHMessage &msg){ return sizeof(TOHMessage::AddrSet); },
 	[](TOHMessage &msg){ return sizeof(TOHMessage::Type) + sizeof(uint8_t) + msg.gps.length; },
 	[](TOHMessage &msg){ return sizeof(TOHMessage::Type) + sizeof(uint8_t) + msg.info.length; },
-	[](TOHMessage &msg){ return sizeof(TOHMessage::Temperateure); },
+	[](TOHMessage &msg){ return sizeof(TOHMessage::Temperature); },
 	[](TOHMessage &msg){ return sizeof(TOHMessage::Humidity); }
 };
 

@@ -71,7 +71,7 @@ public:
 		char text[MAX_INFO_TEXT_LENGTH];
 	} __attribute__((packed));
 
-	struct Temperateure {
+	struct Temperature {
 		Type type;
 		int16_t temperature;
 	} __attribute__((packed));
@@ -91,7 +91,7 @@ public:
 		AddrSet addrSet;
 		GPS gps;
 		Info info;
-		Temperateure temperature;
+		Temperature temperature;
 		Humidity humidity;
 	};
 

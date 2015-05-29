@@ -7,12 +7,16 @@ public class TestRx {
 		System.out.println("TestRX");
 		System.out.println("======");
 		
-		Comm comm = new JSSCComm("COM6");
+		Comm comm = new JSSCComm("COM5");
 
 		comm.start();
 
 		comm.setAddr(0xBABA, 0x0103);
 		comm.setChannel(0);
+		
+		comm.getTemperature();
+		
+		comm.getHumidity();
 
 		for (int i=0; i<1000000; i++) {
 			RXPacket rxPacket = comm.receivePacket();

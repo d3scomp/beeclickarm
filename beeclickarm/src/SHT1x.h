@@ -77,21 +77,17 @@ private:
 	/// Communication delay in microseconds
 	static const uint16_t COM_DELAY = 3;
 
-	// Fixed point arithmetics
-	typedef int64_t IntTemp;
-	static constexpr IntTemp multiplier = 1e10;
-
 	/// Temperature offset constant
-	static constexpr IntTemp TC1 = (int64_t)(-39.7f * multiplier);
+	static constexpr double TC1 = -39.7f;
 	/// Temperature multiplier constant
-	static constexpr IntTemp TC2 = (int64_t)(0.01f * multiplier);
+	static constexpr double TC2 = 0.01f;
 
 	/// Humidity offset constant
-	static constexpr IntTemp HC1 = (int64_t)(-2.0468f * multiplier);
+	static constexpr double HC1 = -2.0468f;
 	/// Humidity multiplier constant
-	static constexpr IntTemp HC2 = (int64_t)(0.0367f * multiplier);
+	static constexpr double HC2 = 0.0367f;
 	/// Humidity exponent constant
-	static constexpr IntTemp HC3 = (int64_t)(-1.5955E-6f * multiplier);
+	static constexpr double HC3 = -1.5955E-6f;
 
 	/// Driver IO properties
 	Properties &properties;

@@ -109,25 +109,25 @@ void handleInfoButtonInterrupt(void*) {
 
 	msg.type = TOHMessage::Type::INFO;
 
-	int16_t temp = sht1x.readTemperature();
-	sprintf(msg.text, "           TEMP:%f", ((double)(temp)) / 10);
-/*
-	int i = 0;
-	while(temp > 0) {
-		msg.text[i] = '0' + temp % 10;
-		temp /= 10;
-		i++;
-	}*/
-
-	/*std::sprintf(msg.text,
+	std::sprintf(msg.text,
 			"txCount: %d\n"
 			"rxCount: %d\n"
 			"panId: %04x\n"
 			"sAddr: %04x\n"
 			"channelNo: %d\n"
 			"mainCycles: %lu\n"
-			"GPS: %s\n",
-			mrf.getTXCount(), mrf.getRXCount(), mrf.readPANId(), mrf.readSAddr(), mrf.readChannel(), mainCycles, gps.getSentence());*/
+			"GPS: %s\n"
+			"Temperature: %.1f°C\n"
+			"Humidity: %.1f%%\n",
+			mrf.getTXCount(),
+			mrf.getRXCount(),
+			mrf.readPANId(),
+			mrf.readSAddr(),
+			mrf.readChannel(),
+			mainCycles,
+			gps.getSentence(),
+			((float)sht1x.readTemperature()) / 10,
+			((float)sht1x.readHumidity()) / 10);
 
 	msg.length = std::strlen(msg.text);
 
