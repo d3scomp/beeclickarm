@@ -60,6 +60,7 @@ private:
 	void handleSync();
 	void handleSendPacket();
 	void handleSetChannel();
+	void handleSetTxPower();
 	void handleSetAddr();
 
 	bool isSendPacketInProgress;

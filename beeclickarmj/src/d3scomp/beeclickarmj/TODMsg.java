@@ -8,7 +8,7 @@ abstract class TODMsg {
 	Type type;
 	
 	static enum Type {
-		SYNC, SEND_PACKET, SET_CHANNEL, SET_ADDR
+		SYNC, SEND_PACKET, SET_CHANNEL, SET_TXPOWER, SET_ADDR
 	}
 	
 	static class Sync extends TODMsg {
@@ -68,6 +68,23 @@ abstract class TODMsg {
 		
 		int getSize() {
 			return typeSize + 1;
+		}
+	}
+	
+	static class SetPower extends TODMsg {
+		short power;
+		
+		SetPower() {
+			type = Type.SET_TXPOWER;
+		}
+		
+		protected void toBytes(ByteBuffer buf) {
+			super.toBytes(buf);
+			buf.putShort(power);
+		}
+		
+		int getSize() {
+			return typeSize + 2;
 		}
 	}
 

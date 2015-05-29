@@ -10,7 +10,7 @@ abstract class TOHMsg {
 	Type type;
 	
 	static enum Type {
-		SYNC, RECV_PACKET, PACKET_SENT, CHANNEL_SET, ADDR_SET, GPS, INFO
+		SYNC, RECV_PACKET, PACKET_SENT, CHANNEL_SET, TXPOWER_SET, ADDR_SET, GPS, INFO
 	}
 	
 	protected static interface TOHMsgFactory {
@@ -42,6 +42,14 @@ abstract class TOHMsg {
 			}
 			public int getExpectedSize(ByteBuffer buf) {
 				return ChannelSet.getExpectedSizeLowerBound(buf);
+			}
+		},
+		new TOHMsgFactory() {
+			public TOHMsg newInstance() {
+				return new TxPowerSet();
+			}
+			public int getExpectedSize(ByteBuffer buf) {
+				return TxPowerSet.getExpectedSizeLowerBound(buf);
 			}
 		},
 		new TOHMsgFactory() {
@@ -157,6 +165,23 @@ abstract class TOHMsg {
 		
 		static int getExpectedSizeLowerBound(ByteBuffer buf) {
 			return typeSize + 1;
+		}
+	}
+	
+	static class TxPowerSet extends TOHMsg {
+		short power;
+		
+		TxPowerSet() {
+			type = Type.TXPOWER_SET;
+		}
+		
+		protected void fromBytes(ByteBuffer buf) {
+			super.fromBytes(buf);
+			power = buf.getShort();
+		}
+		
+		static int getExpectedSizeLowerBound(ByteBuffer buf) {
+			return typeSize + 2;
 		}
 	}
 

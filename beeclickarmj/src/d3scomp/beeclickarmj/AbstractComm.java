@@ -212,6 +212,24 @@ public abstract class AbstractComm implements Comm {
 
 		channelNoRequested = -1;
 	}
+	
+	@Override
+	public void setTxPower(float power) throws CommException {
+		if(power > 0 || power < -36.3) {
+			throw new CommException("Tx power must be within 0 and -36.3 dB");
+		}
+		ensureOperational();
+
+		TODMsg.SetPower msg = new TODMsg.SetPower();
+
+		msg.power = (short) (power * 10);
+
+		try {
+			todQueue.put(msg);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
 
 
 	private int panIdRequested = -1;

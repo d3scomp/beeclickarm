@@ -21,25 +21,30 @@ public:
 	static constexpr auto MAX_RF_PACKET_LENGTH = 128;
 
 	enum class Type : uint8_t {
-		SYNC, SEND_PACKET, SET_CHANNEL, SET_ADDR, count
+		SYNC, SEND_PACKET, SET_CHANNEL, SET_TXPOWER, SET_ADDR, count
 	};
 
 	struct Sync {
 		Type type;
 		uint8_t pattern[sizeof(SYNC_PATTERN)];
-	};
+	} __attribute__((packed));
 
 	struct SendPacket {
 		Type type;
 		uint8_t length;
 		uint8_t seq[4];
 		uint8_t data[MAX_RF_PACKET_LENGTH];
-	};
+	} __attribute__((packed));
 
 	struct SetChannel {
 		Type type;
 		uint8_t channel;
-	};
+	} __attribute__((packed));
+
+	struct SetTxPower {
+		Type type;
+		short power;
+	} __attribute__((packed));
 
 	struct SetAddr {
 		Type type;
@@ -52,6 +57,7 @@ public:
 		Sync sync;
 		SendPacket sendPacket;
 		SetChannel setChannel;
+		SetTxPower setTxPower;
 		SetAddr setAddr;
 	};
 

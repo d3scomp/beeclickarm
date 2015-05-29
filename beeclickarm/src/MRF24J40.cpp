@@ -325,6 +325,41 @@ void MRF24J40::setChannel(uint8_t channel) {
 	delayTimer.uDelay(200);
 }
 
+void MRF24J40::setTxPower(int16_t power) {
+	uint8_t raw = 0b00000000;
+
+	// Adjust TXPWRL
+	if(power <= -300) {
+		power += 300;
+		raw |= 0b11000000;
+	} else if(power <= -200) {
+		power += 200;
+		raw |= 0b10000000;
+	} else if(power <= -100) {
+		power += 100;
+		raw |= 0b01000000;
+	}
+
+	// Adjust TXPWRS
+	if(power <= -6.3) {
+		raw |= 0b00111000;
+	} else if(power <= -49) {
+		raw |= 0b00110000;
+	} else if(power <= -37) {
+		raw |= 0b00101000;
+	} else if(power <= -28) {
+		raw |= 0b00100000;
+	} else if(power <= -19) {
+		raw |= 0b00011000;
+	} else if(power <= -12) {
+		raw |= 0b00101000;
+	} else if(power <= -05) {
+		raw |= 0b00001000;
+	}
+
+	writeLong(RFCON3, raw);
+}
+
 uint8_t MRF24J40::readChannel() {
 	return readLong(RFCON0) >> 4;
 }

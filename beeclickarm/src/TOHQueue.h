@@ -18,13 +18,13 @@ public:
 	static constexpr auto MAX_RF_PACKET_LENGTH = TODMessage::MAX_RF_PACKET_LENGTH;
 
 	enum class Type : uint8_t {
-		SYNC, RECV_PACKET, PACKET_SENT, CHANNEL_SET, ADDR_SET, GPS, INFO, count
+		SYNC, RECV_PACKET, PACKET_SENT, CHANNEL_SET, TXPOWER_SET, ADDR_SET, GPS, INFO, count
 	};
 
 	struct Sync {
 		Type type;
 		uint8_t pattern[sizeof(TODMessage::SYNC_PATTERN)];
-	};
+	} __attribute__((packed));
 
 	struct RecvPacket {
 		Type type;
@@ -35,36 +35,41 @@ public:
 		uint8_t lqi;
 		uint8_t fcs[2];
 		uint8_t data[MAX_RF_PACKET_LENGTH];
-	};
+	} __attribute__((packed));
 
 	struct PacketSent {
 		Type type;
 		uint8_t seq[4];
 		uint8_t status; // 0 - OK, 1 - error
-	};
+	} __attribute__((packed));
 
 	struct ChannelSet {
 		Type type;
 		uint8_t channel;
-	};
+	} __attribute__((packed));
+
+	struct TxPowerSet {
+		Type type;
+		short power;
+	} __attribute__((packed));
 
 	struct AddrSet {
 		Type type;
 		uint8_t panId[2];
 		uint8_t sAddr[2];
-	};
+	} __attribute__((packed));
 
 	struct GPS {
 		Type type;
 		uint8_t length;
 		char text[GPSL10::MAX_GPS_SENTENCE_LENGTH];
-	};
+	} __attribute__((packed));
 
 	struct Info {
 		Type type;
 		uint8_t length;
 		char text[MAX_INFO_TEXT_LENGTH];
-	};
+	} __attribute__((packed));
 
 	union {
 		Type type;
@@ -72,6 +77,7 @@ public:
 		RecvPacket recvPacket;
 		PacketSent packetSent;
 		ChannelSet channelSet;
+		TxPowerSet txPowerSet;
 		AddrSet addrSet;
 		GPS gps;
 		Info info;

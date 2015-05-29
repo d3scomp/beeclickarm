@@ -68,6 +68,16 @@ public:
 	void setChannel(uint8_t channel);
 	uint8_t readChannel();
 
+	/**
+	 * Sets output Tx power in dB
+	 *
+	 * Supported range is from -36.3 dB to 0 dB
+	 *
+	 * @param power
+	 *            Requested Tx power in dB * 10 (-36.3 -> -363)
+	 */
+	void setTxPower(int16_t power);
+
 	void setPANId(uint8_t panId[2]);
 	uint16_t readPANId();
 

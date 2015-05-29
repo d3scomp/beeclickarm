@@ -65,6 +65,7 @@ MsgHandler::MsgHandlerOne MsgHandler::msgHandlers[static_cast<int>(TODMessage::T
 	&MsgHandler::handleSync,
 	&MsgHandler::handleSendPacket,
 	&MsgHandler::handleSetChannel,
+	&MsgHandler::handleSetTxPower,
 	&MsgHandler::handleSetAddr
 };
 
@@ -150,6 +151,19 @@ void MsgHandler::handleSetChannel() {
 	TOHMessage::ChannelSet& outMsg = tohQueue.getCurrentMsgWrite().channelSet;
 	outMsg.type = TOHMessage::Type::CHANNEL_SET;
 	outMsg.channel = inMsg.channel;
+
+	tohQueue.moveToNextMsgWrite();
+	todQueue.moveToNextMsgRead();
+}
+
+void MsgHandler::handleSetTxPower() {
+	TODMessage::SetTxPower& inMsg = todQueue.getCurrentMsgRead().setTxPower;
+
+	mrf.setTxPower(inMsg.power);
+
+	TOHMessage::TxPowerSet& outMsg = tohQueue.getCurrentMsgWrite().txPowerSet;
+	outMsg.type = TOHMessage::Type::TXPOWER_SET;
+	outMsg.power = inMsg.power;
 
 	tohQueue.moveToNextMsgWrite();
 	todQueue.moveToNextMsgRead();

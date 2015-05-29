@@ -11,6 +11,7 @@ size_t (*TODMessage::expectedSizeHandlers[static_cast<int>(Type::count)])(TODMes
 	[](TODMessage &msg){ return sizeof(TODMessage::Sync); },
 	[](TODMessage &msg){ return sizeof(TODMessage::Type) + sizeof(uint8_t) + sizeof(uint32_t) + msg.sendPacket.length; },
 	[](TODMessage &msg){ return sizeof(TODMessage::SetChannel); },
+	[](TODMessage &msg){ return sizeof(TODMessage::SetTxPower); },
 	[](TODMessage &msg){ return sizeof(TODMessage::SetAddr); }
 };
 
