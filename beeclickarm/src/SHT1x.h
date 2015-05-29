@@ -60,7 +60,7 @@ public:
 	 *
 	 * @return relative humidity in percents * 10 as unsigned integer
 	 */
-	uint16_t readHumidity();
+	int16_t readHumidity();
 
 private:
 	/// Temperature measure command code

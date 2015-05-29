@@ -35,12 +35,12 @@ void SHT1x::init() {
 
 int16_t SHT1x::readTemperature() {
 	uint16_t raw = readCommand(CMD_MEASURE_TEMP);
-	return TC1 + TC2 * raw * 10;
+	return (TC1 + TC2 * raw) * 10;
 }
 
-uint16_t SHT1x::readHumidity() {
-	uint16_t raw = readCommand(CMD_MEASURE_HUMID);
-	return HC1 + HC2 * raw + HC3 * raw * raw * 10;
+int16_t SHT1x::readHumidity() {
+	int16_t raw = readCommand(CMD_MEASURE_HUMID);
+	return (HC1 + HC2 * raw + HC3 * raw * raw) * 10;
 }
 
 void SHT1x::reset() {
