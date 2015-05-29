@@ -13,12 +13,18 @@ public class TestTx {
 
 		comm.setAddr(0xBABA, 0x0102);
 		comm.setChannel(0);
-
+		
 		TXPacket txPacket = null;
-		for (int i=0; i<1000; i++) {
-			txPacket = new TXPacket(String.format("SR! [%d]", i).getBytes());
+		for (int i=0; i<10000000; i++) {
+			float power = 0;
+			if(i % 2 == 0)
+				power = -36.3f;
+			
+			comm.setTxPower(power);
+			
+			txPacket = new TXPacket(String.format("SR! [%d] TxPower:%f", i, power).getBytes());
 			comm.broadcastPacket(txPacket);
-			System.out.print("Packet " + i + "sent.\n");
+			System.out.print("Packet " + i + " sent.\n");
 //			txPacket.waitForNotPendingState();
 //			System.out.println(txPacket.getStatus());
 		}
