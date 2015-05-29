@@ -11,6 +11,7 @@
 #include "stm32f4xx.h"
 #include "MRF24J40.h"
 #include "GPS.h"
+#include "SHT1x.h"
 #include "TODQueue.h"
 #include "TOHQueue.h"
 
@@ -21,7 +22,7 @@ public:
 		IRQn irqn;
 	};
 
-	MsgHandler(Properties& initProps, MRF24J40 &mrf, GPSL30& gps, TODQueue& todQueue, TOHQueue& tohQueue);
+	MsgHandler(Properties& initProps, MRF24J40 &mrf, GPSL30& gps, SHT1x& sht1x, TODQueue& todQueue, TOHQueue& tohQueue);
 	~MsgHandler();
 
 	void setPriority(uint8_t irqPreemptionPriority, uint8_t irqSubPriority);
@@ -33,6 +34,7 @@ private:
 
 	MRF24J40& mrf;
 	GPSL30& gps;
+	SHT1x& sht1x;
 	TODQueue& todQueue;
 	TOHQueue& tohQueue;
 
@@ -62,6 +64,8 @@ private:
 	void handleSetChannel();
 	void handleSetTxPower();
 	void handleSetAddr();
+	void handleGetTemperature();
+	void handleGetHumidity();
 
 	bool isSendPacketInProgress;
 

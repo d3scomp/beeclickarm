@@ -19,6 +19,7 @@
 #include "MRF24J40.h"
 #include "Timer.h"
 #include "GPS.h"
+#include "SHT1x.h"
 
 extern uint32_t mainCycles;
 

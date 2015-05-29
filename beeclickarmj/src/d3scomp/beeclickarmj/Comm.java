@@ -20,6 +20,16 @@ public interface Comm {
 	public void setTxPower(float power) throws CommException;
 
 	public void setAddr(int panId, int sAddr) throws CommException;
+	
+	/**
+	 * Requests temperature measurement
+	 */
+	public void getTemperature();
+	
+	/**
+	 * Requests humidity measurement
+	 */
+	public void getHumidity();
 
 	public RXPacket receivePacket() throws CommException;
 

@@ -18,7 +18,7 @@ public:
 	static constexpr auto MAX_RF_PACKET_LENGTH = TODMessage::MAX_RF_PACKET_LENGTH;
 
 	enum class Type : uint8_t {
-		SYNC, RECV_PACKET, PACKET_SENT, CHANNEL_SET, TXPOWER_SET, ADDR_SET, GPS, INFO, count
+		SYNC, RECV_PACKET, PACKET_SENT, CHANNEL_SET, TXPOWER_SET, ADDR_SET, GPS, INFO, TEMPERATURE, HUMIDITY, count
 	};
 
 	struct Sync {
@@ -71,6 +71,16 @@ public:
 		char text[MAX_INFO_TEXT_LENGTH];
 	} __attribute__((packed));
 
+	struct Temperateure {
+		Type type;
+		int16_t temperature;
+	} __attribute__((packed));
+
+	struct Humidity {
+		Type type;
+		uint16_t humidity;
+	} __attribute__((packed));
+
 	union {
 		Type type;
 		Sync sync;
@@ -81,6 +91,8 @@ public:
 		AddrSet addrSet;
 		GPS gps;
 		Info info;
+		Temperateure temperature;
+		Humidity humidity;
 	};
 
 	inline size_t getSize() {

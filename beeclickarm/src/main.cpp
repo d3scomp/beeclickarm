@@ -90,20 +90,36 @@ GPSL30::Properties gpsProps {
 };
 GPSL30 gps(gpsProps, uartGPS); // This can be used for L10 as well. It has the three pins PWR, RST, WUP unconnected
 
+// SHT1x Temperature and humidity sensor
+SHT1x::Properties sensorProps {
+	GPIOB, RCC_AHB1Periph_GPIOB, GPIO_Pin_8, GPIO_Pin_7
+};
+SHT1x sht1x = SHT1x(sensorProps);
+
 TODQueue todQueue(uartTOHD, rxtxPulseLed, outOfSyncLed);
 TOHQueue tohQueue(uartTOHD, rxtxPulseLed);
 
 MsgHandler::Properties msgHandlerProps {
 	EXTI_Line1, EXTI1_IRQn
 };
-MsgHandler msgHandler(msgHandlerProps, mrf, gps, todQueue, tohQueue);
+MsgHandler msgHandler(msgHandlerProps, mrf, gps, sht1x, todQueue, tohQueue);
 
 void handleInfoButtonInterrupt(void*) {
 	TOHMessage::Info& msg = tohQueue.getCurrentMsgWrite().info;
 
 	msg.type = TOHMessage::Type::INFO;
 
-	std::sprintf(msg.text,
+	int16_t temp = sht1x.readTemperature();
+	sprintf(msg.text, "           TEMP:%f", ((double)(temp)) / 10);
+/*
+	int i = 0;
+	while(temp > 0) {
+		msg.text[i] = '0' + temp % 10;
+		temp /= 10;
+		i++;
+	}*/
+
+	/*std::sprintf(msg.text,
 			"txCount: %d\n"
 			"rxCount: %d\n"
 			"panId: %04x\n"
@@ -111,16 +127,31 @@ void handleInfoButtonInterrupt(void*) {
 			"channelNo: %d\n"
 			"mainCycles: %lu\n"
 			"GPS: %s\n",
-			mrf.getTXCount(), mrf.getRXCount(), mrf.readPANId(), mrf.readSAddr(), mrf.readChannel(), mainCycles, gps.getSentence());
+			mrf.getTXCount(), mrf.getRXCount(), mrf.readPANId(), mrf.readSAddr(), mrf.readChannel(), mainCycles, gps.getSentence());*/
 
 	msg.length = std::strlen(msg.text);
 
 	tohQueue.moveToNextMsgWrite();
 }
 
+/**
+ * Enable VFP unit, taken from FreeRTOS port
+ */
+static void enableVFP(void) {
+	__asm volatile ("ldr.w r0, =0xE000ED88");
+	// The FPU enable bits are in the CPACR.
+	__asm volatile ("ldr r1, [r0]");
+	__asm volatile ("orr r1, r1, #( 0xf << 20 )");
+	// Enable CP10 and CP11 co-processors, then save back.
+	__asm volatile ("str r1, [r0]");
+	__asm volatile ("bx r14");
+}
+
 int main(void)
 {
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);	// 2 bits for pre-emption priority, 2 bits for non-preemptive subpriority
+	enableVFP();
+
 	mrf.setSPIPriority(0,0);
 	uartTOHD.setPriority(1,0);
 	delayTimer.setPriority(1,1);
@@ -157,6 +188,7 @@ int main(void)
 
 	uartGPS.init();
 	gps.init();
+	sht1x.init();
 
 	infoButton.setPressedListener(handleInfoButtonInterrupt, nullptr);
 	infoButton.init();

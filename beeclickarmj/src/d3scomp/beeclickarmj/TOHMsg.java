@@ -10,7 +10,7 @@ abstract class TOHMsg {
 	Type type;
 	
 	static enum Type {
-		SYNC, RECV_PACKET, PACKET_SENT, CHANNEL_SET, TXPOWER_SET, ADDR_SET, GPS, INFO
+		SYNC, RECV_PACKET, PACKET_SENT, CHANNEL_SET, TXPOWER_SET, ADDR_SET, GPS, INFO, TEMPERATURE, HUMIDITY
 	}
 	
 	protected static interface TOHMsgFactory {
@@ -75,7 +75,23 @@ abstract class TOHMsg {
 			public int getExpectedSize(ByteBuffer buf) {
 				return Info.getExpectedSizeLowerBound(buf);
 			}
-		}		
+		},
+		new TOHMsgFactory() {
+			public TOHMsg newInstance() {
+				return new Temperature();
+			}
+			public int getExpectedSize(ByteBuffer buf) {
+				return Temperature.getExpectedSizeLowerBound(buf);
+			}
+		},
+		new TOHMsgFactory() {
+			public TOHMsg newInstance() {
+				return new Humidity();
+			}
+			public int getExpectedSize(ByteBuffer buf) {
+				return Humidity.getExpectedSizeLowerBound(buf);
+			}
+		}
 	};
 	
 	static class Sync extends TOHMsg {
@@ -251,6 +267,40 @@ abstract class TOHMsg {
 		
 		static int getExpectedSizeLowerBound(ByteBuffer buf) {
 			return typeSize + 1 + (buf.position() == 1 ? 0 : (buf.get(1) & 0xFF));
+		}
+	}
+	
+	static class Temperature extends TOHMsg {
+		short temperature;
+		
+		public Temperature() {
+			type = Type.TEMPERATURE;
+		}
+		
+		protected void fromBytes(ByteBuffer buf) {
+			super.fromBytes(buf);
+			temperature = buf.getShort();
+		}
+		
+		static int getExpectedSizeLowerBound(ByteBuffer buf) {
+			return typeSize + 2;
+		}
+	}
+	
+	static class Humidity extends TOHMsg {
+		short humidity;
+		
+		public Humidity() {
+			type = Type.HUMIDITY;
+		}
+		
+		protected void fromBytes(ByteBuffer buf) {
+			super.fromBytes(buf);
+			humidity = buf.getShort();
+		}
+		
+		static int getExpectedSizeLowerBound(ByteBuffer buf) {
+			return typeSize + 2;
 		}
 	}
 

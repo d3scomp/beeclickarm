@@ -7,7 +7,7 @@ CMSIS_DIR=stm32f40xx/CMSIS
 PERIPH_DIR=stm32f40xx/STM32F4xx_StdPeriph_Driver
 DISCOVERY_DIR=stm32f4discovery
 
-OPENOCD_DIR=C:/Apps/openocd-0.7.0
+OPENOCD_DIR=C:/Program\ files/openocd
 
 SRCS +=	${SRC_DIR}/main.cpp 
 SRCS +=	${SRC_DIR}/UART.cpp 
@@ -17,6 +17,7 @@ SRCS +=	${SRC_DIR}/TODQueue.cpp
 SRCS +=	${SRC_DIR}/TOHQueue.cpp 
 SRCS +=	${SRC_DIR}/MsgHandler.cpp
 SRCS +=	${SRC_DIR}/MRF24J40.cpp
+SRCS +=	${SRC_DIR}/SHT1x.cpp
 SRCS +=	${SRC_DIR}/Timer.cpp
 SRCS +=	${SRC_DIR}/GPS.cpp
 SRCS +=	${SRC_DIR}/stm32f4xx_it.cpp 
@@ -95,9 +96,9 @@ clean:
 	rm -rf build
 	
 openocd:
-	$(OPENOCD_DIR)/bin-x64/openocd-x64-0.7.0 -f interface/stlink-v2.cfg -f target/stm32f4x_stlink.cfg
+	$(OPENOCD_DIR)/bin-x64/openocd -f interface/stlink-v2.cfg -f target/stm32f4x_stlink.cfg
 
 flash: all
-	$(OPENOCD_DIR)/bin-x64/openocd-x64-0.7.0 -f board/stm32f4discovery.cfg -c "program $(BUILD_DIR)/$(PROJ_NAME).elf verify reset"
+	$(OPENOCD_DIR)/bin-x64/openocd -f board/stm32f4discovery.cfg -c "program $(BUILD_DIR)/$(PROJ_NAME).elf verify reset"
 
 -include $(DEPS)

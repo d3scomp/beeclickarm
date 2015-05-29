@@ -8,8 +8,8 @@
 #include "MsgHandler.h"
 #include <cstring>
 
-MsgHandler::MsgHandler(Properties& initProps, MRF24J40 &mrf, GPSL30& gps, TODQueue& todQueue, TOHQueue& tohQueue) :
-		props(initProps), mrf(mrf), gps(gps), todQueue(todQueue), tohQueue(tohQueue) {
+MsgHandler::MsgHandler(Properties& initProps, MRF24J40 &mrf, GPSL30& gps, SHT1x& sht1x, TODQueue& todQueue, TOHQueue& tohQueue) :
+		props(initProps), mrf(mrf), gps(gps), sht1x(sht1x), todQueue(todQueue), tohQueue(tohQueue) {
 }
 
 MsgHandler::~MsgHandler() {
@@ -66,7 +66,9 @@ MsgHandler::MsgHandlerOne MsgHandler::msgHandlers[static_cast<int>(TODMessage::T
 	&MsgHandler::handleSendPacket,
 	&MsgHandler::handleSetChannel,
 	&MsgHandler::handleSetTxPower,
-	&MsgHandler::handleSetAddr
+	&MsgHandler::handleSetAddr,
+	&MsgHandler::handleGetTemperature,
+	&MsgHandler::handleGetHumidity
 };
 
 void MsgHandler::runInterruptHandler() {
@@ -181,6 +183,32 @@ void MsgHandler::handleSetAddr() {
 	outMsg.panId[1] = inMsg.panId[1];
 	outMsg.sAddr[0] = inMsg.sAddr[0];
 	outMsg.sAddr[1] = inMsg.sAddr[1];
+
+	tohQueue.moveToNextMsgWrite();
+	todQueue.moveToNextMsgRead();
+}
+
+void MsgHandler::handleGetTemperature() {
+	TODMessage::GetTemperature& inMsg = todQueue.getCurrentMsgRead().getTemperature;
+
+	int16_t temp = sht1x.readTemperature();
+
+	TOHMessage::Temperateure& outMsg = tohQueue.getCurrentMsgWrite().temperature;
+	outMsg.type = TOHMessage::Type::TEMPERATURE;
+	outMsg.temperature = temp;
+
+	tohQueue.moveToNextMsgWrite();
+	todQueue.moveToNextMsgRead();
+}
+
+void MsgHandler::handleGetHumidity() {
+	TODMessage::GetHumidity& inMsg = todQueue.getCurrentMsgRead().getHumidity;
+
+	uint16_t humid = sht1x.readHumidity();
+
+	TOHMessage::Humidity& outMsg = tohQueue.getCurrentMsgWrite().humidity;
+	outMsg.type = TOHMessage::Type::HUMIDITY;
+	outMsg.humidity = humid;
 
 	tohQueue.moveToNextMsgWrite();
 	todQueue.moveToNextMsgRead();

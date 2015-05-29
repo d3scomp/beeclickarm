@@ -7,6 +7,11 @@ import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import d3scomp.beeclickarmj.TODMsg.GetHumidity;
+import d3scomp.beeclickarmj.TODMsg.GetTemperature;
+import d3scomp.beeclickarmj.TOHMsg.Humidity;
+import d3scomp.beeclickarmj.TOHMsg.Temperature;
+
 public abstract class AbstractComm implements Comm {
 	final static int MAXIMUM_TX_PACKET_IN_QUEUE = 3;
 	final static int MAXIMUM_EMPIRICAL_PACKET_DATA_LENGTH = 118;
@@ -230,6 +235,28 @@ public abstract class AbstractComm implements Comm {
 			e.printStackTrace();
 		}
 	}
+	
+	@Override
+	public void getTemperature() {
+		TODMsg.GetTemperature msg = new GetTemperature();
+		
+		try {
+			todQueue.put(msg);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+
+	@Override
+	public void getHumidity() {
+		TODMsg.GetHumidity msg = new GetHumidity();
+		
+		try {
+			todQueue.put(msg);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
 
 
 	private int panIdRequested = -1;
@@ -367,9 +394,19 @@ public abstract class AbstractComm implements Comm {
 
 		} else if (msg.type == TOHMsg.Type.INFO) {
 			TOHMsg.Info tmsg = (TOHMsg.Info)msg;
-			System.out.println("===== INFO =====");
+			System.out.println("======= INFO =======");
 			System.out.println(tmsg.text);
-			System.out.println("================");
+			System.out.println("====================");
+		} else if (msg.type == TOHMsg.Type.TEMPERATURE) {
+			TOHMsg.Temperature tmsg = (Temperature) msg;
+			System.out.println("==== TEMPERATURE ===");
+			System.out.println(tmsg.temperature);
+			System.out.println("====================");
+		} else if (msg.type == TOHMsg.Type.HUMIDITY) {
+			TOHMsg.Humidity tmsg = (Humidity) msg;
+			System.out.println("===== HUMIDITY =====");
+			System.out.println(tmsg.humidity);
+			System.out.println("====================");
 		}
 	}
 }
