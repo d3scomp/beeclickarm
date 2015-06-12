@@ -398,12 +398,12 @@ public abstract class AbstractComm implements Comm {
 			System.out.println(tmsg.text);
 			System.out.println("====================");
 		} else if (msg.type == TOHMsg.Type.TEMPERATURE) {
-			TOHMsg.Temperature tmsg = (Temperature) msg;
+			TOHMsg.Temperature tmsg = (TOHMsg.Temperature) msg;
 			System.out.println("==== TEMPERATURE ===");
 			System.out.println(tmsg.temperature);
 			System.out.println("====================");
 		} else if (msg.type == TOHMsg.Type.HUMIDITY) {
-			TOHMsg.Humidity tmsg = (Humidity) msg;
+			TOHMsg.Humidity tmsg = (TOHMsg.Humidity) msg;
 			System.out.println("===== HUMIDITY =====");
 			System.out.println(tmsg.humidity);
 			System.out.println("====================");

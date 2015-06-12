@@ -78,7 +78,7 @@ public:
 
 	struct Humidity {
 		Type type;
-		uint16_t humidity;
+		int16_t humidity;
 	} __attribute__((packed));
 
 	union {

@@ -204,7 +204,7 @@ void MsgHandler::handleGetTemperature() {
 void MsgHandler::handleGetHumidity() {
 	TODMessage::GetHumidity& inMsg = todQueue.getCurrentMsgRead().getHumidity;
 
-	uint16_t humid = sht1x.readHumidity();
+	int16_t humid = 4242;//sht1x.readHumidity();
 
 	TOHMessage::Humidity& outMsg = tohQueue.getCurrentMsgWrite().humidity;
 	outMsg.type = TOHMessage::Type::HUMIDITY;

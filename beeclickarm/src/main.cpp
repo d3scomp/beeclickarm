@@ -104,6 +104,8 @@ MsgHandler::Properties msgHandlerProps {
 };
 MsgHandler msgHandler(msgHandlerProps, mrf, gps, sht1x, todQueue, tohQueue);
 
+SensorPublisher sensorPublisher(100, sht1x, tohQueue);
+
 void handleInfoButtonInterrupt(void*) {
 	TOHMessage::Info& msg = tohQueue.getCurrentMsgWrite().info;
 

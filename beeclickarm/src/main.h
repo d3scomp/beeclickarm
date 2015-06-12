@@ -20,6 +20,7 @@
 #include "Timer.h"
 #include "GPS.h"
 #include "SHT1x.h"
+#include "SensorPublisher.h"
 
 extern uint32_t mainCycles;
 

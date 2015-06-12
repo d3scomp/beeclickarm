@@ -2,6 +2,7 @@
 
 #include "main.h"
 #include "LED.h"
+#include "SensorPublisher.h"
 
 
 /** @addtogroup Template_Project
@@ -102,6 +103,7 @@ void PendSV_Handler(void) {
  */
 void SysTick_Handler(void) {
 	PulseLED::tickInterruptHandler();
+	SensorPublisher::tickHandler();
 }
 
 /******************************************************************************/
