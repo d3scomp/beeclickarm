@@ -47,6 +47,8 @@ void SensorPublisher::publish() {
 	publishHumidity();
 }
 
+int x = 0;
+
 void SensorPublisher::publishTemperature() {
 	// Publish temperature
 	int16_t temp = sht1x.readTemperature();
@@ -60,7 +62,7 @@ void SensorPublisher::publishTemperature() {
 
 void SensorPublisher::publishHumidity() {
 	// Publish humidity
-	int16_t humid = 4242;//sht1x.readHumidity();
+	int16_t humid = sht1x.readHumidity();
 
 	TOHMessage::Humidity& outMsg = tohQueue.getCurrentMsgWrite().humidity;
 	outMsg.type = TOHMessage::Type::HUMIDITY;

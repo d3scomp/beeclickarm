@@ -80,7 +80,7 @@ abstract class TODMsg {
 		
 		protected void toBytes(ByteBuffer buf) {
 			super.toBytes(buf);
-			buf.putShort(power);
+			buf.putShort(Short.reverseBytes(power));
 		}
 		
 		int getSize() {

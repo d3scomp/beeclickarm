@@ -279,7 +279,7 @@ abstract class TOHMsg {
 		
 		protected void fromBytes(ByteBuffer buf) {
 			super.fromBytes(buf);
-			temperature = buf.getShort();
+			temperature = Short.reverseBytes(buf.getShort());
 		}
 		
 		static int getExpectedSizeLowerBound(ByteBuffer buf) {
@@ -296,7 +296,7 @@ abstract class TOHMsg {
 		
 		protected void fromBytes(ByteBuffer buf) {
 			super.fromBytes(buf);
-			humidity = buf.getShort();
+			humidity = Short.reverseBytes(buf.getShort());
 		}
 		
 		static int getExpectedSizeLowerBound(ByteBuffer buf) {
