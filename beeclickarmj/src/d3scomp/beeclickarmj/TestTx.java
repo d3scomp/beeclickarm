@@ -7,7 +7,7 @@ public class TestTx {
 		System.out.println("TestTX");
 		System.out.println("======");
 		
-		Comm comm = new JSSCComm("COM5");
+		Comm comm = new JSSCComm("COM6");
 
 		comm.start();
 

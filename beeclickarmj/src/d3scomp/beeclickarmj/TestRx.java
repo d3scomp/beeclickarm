@@ -35,17 +35,19 @@ public class TestRx {
 				System.out.format("GPS reading listener lat: %f, lon: %f, time: %s%n", lattitude, longtitude, time.toString());
 			}
 		});
-				
-		for (int i=0; i<1000000; i++) {
-			RXPacket rxPacket = comm.receivePacket();
-			int len = rxPacket.getData().length;
-			byte[] data = rxPacket.getData();
-			
-			System.out.format("Packet received: len=%d srcPanId=%04x srcSAddr=%04x fcs=%04x lqi=%d rssi=%d ... \"%s\"\n", len, rxPacket.getSrcPanId(), rxPacket.getSrcSAddr(), rxPacket.getFCS(), rxPacket.getLQI(), rxPacket.getRSSI(), new String(data));
-					
-		}
-
-		System.out.println("Done but still running. Press ENTER to exit.");
+		
+		comm.setReceivePacketListener(new ReceivePacketListener() {
+			@Override
+			public void receivePacket(RXPacket packet) {
+				int len = packet.getData().length;
+				byte[] data = packet.getData();
+				System.out.format("Packet received: len=%d srcPanId=%04x srcSAddr=%04x fcs=%04x lqi=%d rssi=%d ... \"%s\"\n", len, packet.getSrcPanId(), packet.getSrcSAddr(), packet.getFCS(), packet.getLQI(), packet.getRSSI(), new String(data));				
+			}
+		});
+		
+		
+		
+		System.out.println("Running, Press ENTER to exit.");
 		System.in.read();
 
 		comm.shutdown();
