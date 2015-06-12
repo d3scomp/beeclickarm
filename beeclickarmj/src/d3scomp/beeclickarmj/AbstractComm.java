@@ -7,11 +7,6 @@ import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import d3scomp.beeclickarmj.TODMsg.GetHumidity;
-import d3scomp.beeclickarmj.TODMsg.GetTemperature;
-import d3scomp.beeclickarmj.TOHMsg.Humidity;
-import d3scomp.beeclickarmj.TOHMsg.Temperature;
-
 public abstract class AbstractComm implements Comm {
 	final static int MAXIMUM_TX_PACKET_IN_QUEUE = 3;
 	final static int MAXIMUM_EMPIRICAL_PACKET_DATA_LENGTH = 118;
@@ -236,29 +231,6 @@ public abstract class AbstractComm implements Comm {
 		}
 	}
 	
-	@Override
-	public void getTemperature() {
-		TODMsg.GetTemperature msg = new GetTemperature();
-		
-		try {
-			todQueue.put(msg);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-	}
-
-	@Override
-	public void getHumidity() {
-		TODMsg.GetHumidity msg = new GetHumidity();
-		
-		try {
-			todQueue.put(msg);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-	}
-
-
 	private int panIdRequested = -1;
 	private int sAddrRequested = -1;
 	private CyclicBarrier addrSync = new CyclicBarrier(2);

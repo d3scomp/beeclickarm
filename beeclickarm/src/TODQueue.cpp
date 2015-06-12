@@ -12,9 +12,7 @@ size_t (*TODMessage::expectedSizeHandlers[static_cast<int>(Type::count)])(TODMes
 	[](TODMessage &msg){ return sizeof(TODMessage::Type) + sizeof(uint8_t) + sizeof(uint32_t) + msg.sendPacket.length; },
 	[](TODMessage &msg){ return sizeof(TODMessage::SetChannel); },
 	[](TODMessage &msg){ return sizeof(TODMessage::SetTxPower); },
-	[](TODMessage &msg){ return sizeof(TODMessage::SetAddr); },
-	[](TODMessage &msg){ return sizeof(TODMessage::GetTemperature); },
-	[](TODMessage &msg){ return sizeof(TODMessage::GetHumidity); }
+	[](TODMessage &msg){ return sizeof(TODMessage::SetAddr); }
 };
 
 constexpr uint8_t TODMessage::SYNC_PATTERN[];

@@ -21,16 +21,6 @@ public interface Comm {
 
 	public void setAddr(int panId, int sAddr) throws CommException;
 	
-	/**
-	 * Requests temperature measurement
-	 */
-	public void getTemperature();
-	
-	/**
-	 * Requests humidity measurement
-	 */
-	public void getHumidity();
-
 	public RXPacket receivePacket() throws CommException;
 
 	public void setReceivePacketListener(ReceivePacketListener listener);

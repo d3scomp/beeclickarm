@@ -21,7 +21,7 @@ public:
 	static constexpr auto MAX_RF_PACKET_LENGTH = 128;
 
 	enum class Type : uint8_t {
-		SYNC, SEND_PACKET, SET_CHANNEL, SET_TXPOWER, SET_ADDR, GET_TEMPERATURE, GET_HUMIDITY, count
+		SYNC, SEND_PACKET, SET_CHANNEL, SET_TXPOWER, SET_ADDR, count
 	};
 
 	struct Sync {
@@ -52,14 +52,6 @@ public:
 		uint8_t sAddr[2];
 	} __attribute__((packed));
 
-	struct GetTemperature {
-		Type type;
-	} __attribute__((packed));
-
-	struct GetHumidity {
-		Type type;
-	} __attribute__((packed));
-
 	union {
 		Type type;
 		Sync sync;
@@ -67,8 +59,6 @@ public:
 		SetChannel setChannel;
 		SetTxPower setTxPower;
 		SetAddr setAddr;
-		GetTemperature getTemperature;
-		GetHumidity getHumidity;
 	};
 
 	inline size_t getExpectedSizeLowerBound() {

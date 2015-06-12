@@ -8,7 +8,7 @@ abstract class TODMsg {
 	Type type;
 	
 	static enum Type {
-		SYNC, SEND_PACKET, SET_CHANNEL, SET_TXPOWER, SET_ADDR, GET_TEMPERATURE, GET_HUMIDITY
+		SYNC, SEND_PACKET, SET_CHANNEL, SET_TXPOWER, SET_ADDR
 	}
 	
 	static class Sync extends TODMsg {
@@ -106,34 +106,6 @@ abstract class TODMsg {
 		
 		int getSize() {
 			return typeSize + 4;
-		}
-	}
-	
-	static class GetTemperature extends TODMsg {
-		public GetTemperature() {
-			type = Type.GET_TEMPERATURE;
-		}
-		
-		protected void toBytes(ByteBuffer buf) {
-			super.toBytes(buf);
-		}
-		
-		int getSize() {
-			return typeSize;
-		}
-	}
-	
-	static class GetHumidity extends TODMsg {
-		public GetHumidity() {
-			type = Type.GET_HUMIDITY;
-		}
-		
-		protected void toBytes(ByteBuffer buf) {
-			super.toBytes(buf);
-		}
-		
-		int getSize() {
-			return typeSize;
 		}
 	}
 	

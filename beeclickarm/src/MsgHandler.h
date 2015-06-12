@@ -64,8 +64,6 @@ private:
 	void handleSetChannel();
 	void handleSetTxPower();
 	void handleSetAddr();
-	void handleGetTemperature();
-	void handleGetHumidity();
 
 	bool isSendPacketInProgress;
 

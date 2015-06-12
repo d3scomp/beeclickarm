@@ -66,9 +66,7 @@ MsgHandler::MsgHandlerOne MsgHandler::msgHandlers[static_cast<int>(TODMessage::T
 	&MsgHandler::handleSendPacket,
 	&MsgHandler::handleSetChannel,
 	&MsgHandler::handleSetTxPower,
-	&MsgHandler::handleSetAddr,
-	&MsgHandler::handleGetTemperature,
-	&MsgHandler::handleGetHumidity
+	&MsgHandler::handleSetAddr
 };
 
 void MsgHandler::runInterruptHandler() {
@@ -183,32 +181,6 @@ void MsgHandler::handleSetAddr() {
 	outMsg.panId[1] = inMsg.panId[1];
 	outMsg.sAddr[0] = inMsg.sAddr[0];
 	outMsg.sAddr[1] = inMsg.sAddr[1];
-
-	tohQueue.moveToNextMsgWrite();
-	todQueue.moveToNextMsgRead();
-}
-
-void MsgHandler::handleGetTemperature() {
-	TODMessage::GetTemperature& inMsg = todQueue.getCurrentMsgRead().getTemperature;
-
-	int16_t temp = sht1x.readTemperature();
-
-	TOHMessage::Temperature& outMsg = tohQueue.getCurrentMsgWrite().temperature;
-	outMsg.type = TOHMessage::Type::TEMPERATURE;
-	outMsg.temperature = temp;
-
-	tohQueue.moveToNextMsgWrite();
-	todQueue.moveToNextMsgRead();
-}
-
-void MsgHandler::handleGetHumidity() {
-	TODMessage::GetHumidity& inMsg = todQueue.getCurrentMsgRead().getHumidity;
-
-	int16_t humid = 4242;//sht1x.readHumidity();
-
-	TOHMessage::Humidity& outMsg = tohQueue.getCurrentMsgWrite().humidity;
-	outMsg.type = TOHMessage::Type::HUMIDITY;
-	outMsg.humidity = humid;
 
 	tohQueue.moveToNextMsgWrite();
 	todQueue.moveToNextMsgRead();
