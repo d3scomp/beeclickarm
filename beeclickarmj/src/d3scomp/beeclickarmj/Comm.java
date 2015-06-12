@@ -24,6 +24,21 @@ public interface Comm {
 	public RXPacket receivePacket() throws CommException;
 
 	public void setReceivePacketListener(ReceivePacketListener listener);
+	
+	/**
+	 * Sets listener which is used when new temperature reading is acquired
+	 */
+	public void setTemperatureReadingListener(TemperatureReadingListener listener);
+	
+	/**
+	 * Sets listener which is used when new humidity reading is acquired
+	 */
+	public void setHumidityReadingListener(HumidityReadingListener listener);
+	
+	/**
+	 * Sets GPS reading listener which is used when new GPS reading is acquired from device
+	 */
+	public void setGPSReadingListener(GPSReadingListener listener);
 
 	public abstract void start() throws CommException;
 

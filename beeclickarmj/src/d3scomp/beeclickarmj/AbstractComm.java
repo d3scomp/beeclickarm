@@ -1,6 +1,8 @@
 package d3scomp.beeclickarmj;
 
 import java.nio.ByteBuffer;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BrokenBarrierException;
@@ -304,6 +306,27 @@ public abstract class AbstractComm implements Comm {
 	public void setReceivePacketListener(ReceivePacketListener receivePacketListener) {
 		this.receivePacketListener = receivePacketListener;
 	}
+	
+	private TemperatureReadingListener temperatureReadingListener;
+	
+	@Override
+	public void setTemperatureReadingListener(TemperatureReadingListener listener) {
+		this.temperatureReadingListener = listener;
+	}
+	
+	private HumidityReadingListener humidityReadingListener;
+	
+	@Override
+	public void setHumidityReadingListener(HumidityReadingListener listener) {
+		this.humidityReadingListener = listener;
+	}
+	
+	private GPSReadingListener gpsReadingListener;
+	
+	@Override
+	public void setGPSReadingListener(GPSReadingListener listener) {
+		this.gpsReadingListener = listener;
+	}
 
 	private void rxHandle(TOHMsg msg) {
 		if (msg.type == TOHMsg.Type.PACKET_SENT) {
@@ -361,9 +384,7 @@ public abstract class AbstractComm implements Comm {
 
 		} else if (msg.type == TOHMsg.Type.GPS) {
 			TOHMsg.GPS tmsg = (TOHMsg.GPS)msg;
-			System.out.println("GPS: " + tmsg.text);
-			// TODO: API for GPS coordinates 
-
+			handleGPS(tmsg.text);
 		} else if (msg.type == TOHMsg.Type.INFO) {
 			TOHMsg.Info tmsg = (TOHMsg.Info)msg;
 			System.out.println("======= INFO =======");
@@ -371,10 +392,70 @@ public abstract class AbstractComm implements Comm {
 			System.out.println("====================");
 		} else if (msg.type == TOHMsg.Type.TEMPERATURE) {
 			TOHMsg.Temperature tmsg = (TOHMsg.Temperature) msg;
-			System.out.println("TEMP: " + (float)(tmsg.temperature) / 10 + "°C");
+			
+			float temperature = (float)(tmsg.temperature) / 10;
+			
+			if(temperatureReadingListener != null) {
+				temperatureReadingListener.readTemperature(temperature);
+			} else {
+				System.out.format("TEMP: %.1f °C%n", temperature);
+			}
 		} else if (msg.type == TOHMsg.Type.HUMIDITY) {
 			TOHMsg.Humidity tmsg = (TOHMsg.Humidity) msg;
-			System.out.println("HUMIDITY: " + (float)(tmsg.humidity / 10) + "%");
+			
+			float humidity = (float)(tmsg.humidity / 10);
+			
+			if(humidityReadingListener != null) {
+				humidityReadingListener.readHumidity(humidity);
+			} else {
+				System.out.format("HUMIDITY: %.1f%%%n", humidity);
+			}
+		}
+	}
+	
+	// TODO: The conversion is not 100% checked
+	private void handleGPS(String sent) {		
+		// Decode validity, do nothing when data are not valid
+		if(sent.charAt(18) != 'A') {
+			return;
+		}
+		
+		// Decode time
+		long rawTime = Long.parseUnsignedLong(sent.substring(7, 7 + 6));
+		long rawDate = Long.parseUnsignedLong(sent.substring(56, 56 + 6));
+		Calendar time = Calendar.getInstance();
+		time.set(
+			(int)(2000 + rawDate % 100), // Year
+			(int)((rawDate / 100) % 100) - 1, // Month
+			(int)(rawDate / 10000), // Day
+			
+			(int)(rawTime / 10000), // Hour
+			(int)((rawTime / 100) % 100), // Minute
+			(int)(rawTime % 100) // second
+		);
+		
+		// Decode latitude
+		long rawLat1 = Long.parseUnsignedLong(sent.substring(20, 20 + 4));
+		long rawLat2 = Long.parseUnsignedLong(sent.substring(25, 25 + 4));
+		int latSgn = sent.charAt(30)=='S'?-1:1;
+		long latDeg = rawLat1 / 100;
+		long latMin = rawLat1 % 100;
+		long latMinDec = rawLat2;
+		double lat = latSgn * (latDeg + (double)latMin / 60 + (double)latMinDec / 600000);
+		
+		// Decode longitude
+		long rawLon1 = Long.parseUnsignedLong(sent.substring(32, 32 + 5));
+		long rawLon2 = Long.parseUnsignedLong(sent.substring(38, 38 + 4));
+		int lonSgn = sent.charAt(43)=='W'?-1:1;
+		long lonDeg = rawLon1 / 100;
+		long lonMin = rawLon1 % 100;
+		long lonMinDec = rawLon2;
+		double lon = lonSgn * (lonDeg + (double)lonMin / 60 + (double)lonMinDec / 600000);
+			
+		if(gpsReadingListener != null) {
+			gpsReadingListener.readGPS(lon, lat, time.getTime());
+		} else {
+			System.out.println("GPS: " + sent);
 		}
 	}
 }

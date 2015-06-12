@@ -1,6 +1,7 @@
 package d3scomp.beeclickarmj;
 
 import java.io.IOException;
+import java.util.Date;
 
 public class TestRx {
 	public static void main(String[] args) throws CommException, IOException, InterruptedException {
@@ -14,12 +15,27 @@ public class TestRx {
 		comm.setAddr(0xBABA, 0x0103);
 		comm.setChannel(0);
 		
-	/*	for(int i = 0; i < 10000000; i++) {
-			comm.getTemperature();
-			comm.getHumidity();
-			Thread.sleep(500);
-		}*/
+		comm.setTemperatureReadingListener(new TemperatureReadingListener() {
+			@Override
+			public void readTemperature(float temperature) {
+				System.out.format("Temperature reading: %.1f°C%n", temperature);
+			}
+		});
 		
+		comm.setHumidityReadingListener(new HumidityReadingListener() {
+			@Override
+			public void readHumidity(float humidity) {
+				System.out.format("Humidity reading listener %.1f%%%n", humidity);
+			}
+		});
+		
+		comm.setGPSReadingListener(new GPSReadingListener() {
+			@Override
+			public void readGPS(double longtitude, double lattitude, Date time) {
+				System.out.format("GPS reading listener lat: %f, lon: %f, time: %s%n", lattitude, longtitude, time.toString());
+			}
+		});
+				
 		for (int i=0; i<1000000; i++) {
 			RXPacket rxPacket = comm.receivePacket();
 			int len = rxPacket.getData().length;
@@ -34,5 +50,4 @@ public class TestRx {
 
 		comm.shutdown();
 	}
-
 }
