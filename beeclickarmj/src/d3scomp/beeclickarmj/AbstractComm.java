@@ -11,10 +11,13 @@ import java.util.concurrent.LinkedBlockingQueue;
 public abstract class AbstractComm implements Comm {
 	final static int MAXIMUM_TX_PACKET_IN_QUEUE = 3;
 	final static int MAXIMUM_EMPIRICAL_PACKET_DATA_LENGTH = 118;
-	
+
 	protected abstract byte[] readPort(int size) throws InterruptedException, CommException;
+
 	protected abstract void writePort(byte[] buffer) throws InterruptedException, CommException;
+
 	protected abstract void openPort() throws CommException;
+
 	protected abstract void closePort() throws CommException;
 
 	private Thread txThread;
@@ -72,7 +75,7 @@ public abstract class AbstractComm implements Comm {
 		}
 	}
 
-	private void txRun() {	
+	private void txRun() {
 		try {
 			while (true) {
 				TODMsg msg;
@@ -92,7 +95,6 @@ public abstract class AbstractComm implements Comm {
 
 	}
 
-	
 	private ByteBuffer rxBuf = ByteBuffer.allocate(TOHMsg.MAX_MSG_SIZE);
 
 	private void rxRun() {
@@ -118,7 +120,7 @@ public abstract class AbstractComm implements Comm {
 				byte msgType = readPort(1)[0];
 				rxBuf.put(msgType);
 
-				int bytesStilExpected;					
+				int bytesStilExpected;
 				while ((bytesStilExpected = TOHMsg.getExpectedSizeLowerBound(rxBuf) - rxBuf.position()) > 0) {
 					rxBuf.put(readPort(bytesStilExpected));
 				}
@@ -137,7 +139,7 @@ public abstract class AbstractComm implements Comm {
 
 	private void ensureOperational() throws CommException {
 		if (!isOperational) {
-			throw new CommException("Communication stack is not operational."); 
+			throw new CommException("Communication stack is not operational.");
 		}
 	}
 
@@ -149,11 +151,13 @@ public abstract class AbstractComm implements Comm {
 		ensureOperational();
 
 		if (pkt.getData().length > MAXIMUM_EMPIRICAL_PACKET_DATA_LENGTH) {
-			throw new CommException("Packet data length exceeds limit of " + MAXIMUM_EMPIRICAL_PACKET_DATA_LENGTH + " bytes.");
+			throw new CommException("Packet data length exceeds limit of " + MAXIMUM_EMPIRICAL_PACKET_DATA_LENGTH
+					+ " bytes.");
 		}
-		
+
 		synchronized (txPackets) {
-			while (txPackets.size() > MAXIMUM_TX_PACKET_IN_QUEUE) { // MAX_QUEUE_LENGTH on device side is 8, so this should be safe bound
+			while (txPackets.size() > MAXIMUM_TX_PACKET_IN_QUEUE) { // MAX_QUEUE_LENGTH on device side is 8, so this
+																	// should be safe bound
 				try {
 					txPackets.wait();
 				} catch (InterruptedException e) {
@@ -177,7 +181,6 @@ public abstract class AbstractComm implements Comm {
 			e.printStackTrace();
 		}
 	}
-
 
 	private int channelNoRequested = -1;
 	private CyclicBarrier channelNoSync = new CyclicBarrier(2);
@@ -213,10 +216,10 @@ public abstract class AbstractComm implements Comm {
 
 		channelNoRequested = -1;
 	}
-	
+
 	@Override
 	public void setTxPower(float power) throws CommException {
-		if(power > 0 || power < -36.3) {
+		if (power > 0 || power < -36.3) {
 			throw new CommException("Tx power must be within 0 and -36.3 dB");
 		}
 		ensureOperational();
@@ -231,7 +234,7 @@ public abstract class AbstractComm implements Comm {
 			e.printStackTrace();
 		}
 	}
-	
+
 	private int panIdRequested = -1;
 	private int sAddrRequested = -1;
 	private CyclicBarrier addrSync = new CyclicBarrier(2);
@@ -279,7 +282,6 @@ public abstract class AbstractComm implements Comm {
 		super();
 	}
 
-
 	private LinkedBlockingQueue<RXPacket> rxQueue = new LinkedBlockingQueue<RXPacket>();
 
 	@Override
@@ -287,7 +289,7 @@ public abstract class AbstractComm implements Comm {
 		if (receivePacketListener != null) {
 			throw new CommException("Receive Packet Listener has been registered. This method should not be called.");
 		}
-		
+
 		ensureOperational();
 
 		try {
@@ -305,23 +307,23 @@ public abstract class AbstractComm implements Comm {
 	public void setReceivePacketListener(ReceivePacketListener receivePacketListener) {
 		this.receivePacketListener = receivePacketListener;
 	}
-	
+
 	private TemperatureReadingListener temperatureReadingListener;
-	
+
 	@Override
 	public void setTemperatureReadingListener(TemperatureReadingListener listener) {
 		this.temperatureReadingListener = listener;
 	}
-	
+
 	private HumidityReadingListener humidityReadingListener;
-	
+
 	@Override
 	public void setHumidityReadingListener(HumidityReadingListener listener) {
 		this.humidityReadingListener = listener;
 	}
-	
+
 	private GPSReadingListener gpsReadingListener;
-	
+
 	@Override
 	public void setGPSReadingListener(GPSReadingListener listener) {
 		this.gpsReadingListener = listener;
@@ -329,25 +331,26 @@ public abstract class AbstractComm implements Comm {
 
 	private void rxHandle(TOHMsg msg) {
 		if (msg.type == TOHMsg.Type.PACKET_SENT) {
-			TOHMsg.PacketSent tmsg = (TOHMsg.PacketSent)msg;
+			TOHMsg.PacketSent tmsg = (TOHMsg.PacketSent) msg;
 
 			TXPacket pkt;
-			
+
 			synchronized (txPackets) {
 				pkt = txPackets.remove(tmsg.seq);
 				txPackets.notifyAll();
 			}
-			
+
 			synchronized (pkt) {
 				pkt.setStatus(tmsg.status == 0 ? TXPacket.Status.SENT : TXPacket.Status.ERROR);
 				pkt.notifyAll();
 			}
 
-		} if (msg.type == TOHMsg.Type.RECV_PACKET) {
-			TOHMsg.RecvPacket tmsg = (TOHMsg.RecvPacket)msg;
+		}
+		if (msg.type == TOHMsg.Type.RECV_PACKET) {
+			TOHMsg.RecvPacket tmsg = (TOHMsg.RecvPacket) msg;
 
 			RXPacket pkt = new RXPacket(tmsg.data, tmsg.srcPanId, tmsg.srcSAddr, tmsg.rssi, tmsg.lqi, tmsg.fcs);
-			
+
 			if (receivePacketListener != null) {
 				receivePacketListener.receivePacket(pkt);
 			} else {
@@ -359,9 +362,9 @@ public abstract class AbstractComm implements Comm {
 			}
 
 		} else if (msg.type == TOHMsg.Type.CHANNEL_SET) {
-			TOHMsg.ChannelSet tmsg = (TOHMsg.ChannelSet)msg;
+			TOHMsg.ChannelSet tmsg = (TOHMsg.ChannelSet) msg;
 
-			assert(channelNoRequested == tmsg.channel);
+			assert (channelNoRequested == tmsg.channel);
 
 			try {
 				channelNoSync.await();
@@ -370,10 +373,10 @@ public abstract class AbstractComm implements Comm {
 			}
 
 		} else if (msg.type == TOHMsg.Type.ADDR_SET) {
-			TOHMsg.AddrSet tmsg = (TOHMsg.AddrSet)msg;
+			TOHMsg.AddrSet tmsg = (TOHMsg.AddrSet) msg;
 
-			assert(panIdRequested == tmsg.panId);
-			assert(sAddrRequested == tmsg.sAddr);
+			assert (panIdRequested == tmsg.panId);
+			assert (sAddrRequested == tmsg.sAddr);
 
 			try {
 				addrSync.await();
@@ -382,76 +385,80 @@ public abstract class AbstractComm implements Comm {
 			}
 
 		} else if (msg.type == TOHMsg.Type.GPS) {
-			TOHMsg.GPS tmsg = (TOHMsg.GPS)msg;
+			TOHMsg.GPS tmsg = (TOHMsg.GPS) msg;
 			handleGPS(tmsg.text);
 		} else if (msg.type == TOHMsg.Type.INFO) {
-			TOHMsg.Info tmsg = (TOHMsg.Info)msg;
+			TOHMsg.Info tmsg = (TOHMsg.Info) msg;
 			System.out.println("======= INFO =======");
 			System.out.println(tmsg.text);
 			System.out.println("====================");
 		} else if (msg.type == TOHMsg.Type.TEMPERATURE) {
 			TOHMsg.Temperature tmsg = (TOHMsg.Temperature) msg;
-			
-			float temperature = (float)(tmsg.temperature) / 10;
-			
-			if(temperatureReadingListener != null) {
+
+			float temperature = (float) (tmsg.temperature) / 10;
+
+			if (temperatureReadingListener != null) {
 				temperatureReadingListener.readTemperature(temperature);
 			} else {
 				System.out.format("TEMP: %.1f °C%n", temperature);
 			}
 		} else if (msg.type == TOHMsg.Type.HUMIDITY) {
 			TOHMsg.Humidity tmsg = (TOHMsg.Humidity) msg;
-			
-			float humidity = (float)(tmsg.humidity / 10);
-			
-			if(humidityReadingListener != null) {
+
+			float humidity = (float) (tmsg.humidity / 10);
+
+			if (humidityReadingListener != null) {
 				humidityReadingListener.readHumidity(humidity);
 			} else {
 				System.out.format("HUMIDITY: %.1f%%%n", humidity);
 			}
 		}
 	}
-	
+
 	// TODO: The conversion is not 100% checked
-	private void handleGPS(String sent) {		
+	private void handleGPS(String sent) {
+		// Split GPS message by fields
+		// Message example:
+		// $GPRMC,152504.000,A,5005.2953,N,01424.1988,E,0.48,251.08,180615,,,A*66
+		String[] fields = sent.split(",|\\.");
+
 		// Decode validity, do nothing when data are not valid
-		if(sent.charAt(18) != 'A') {
+		if (!fields[3].equals("A")) {
 			return;
 		}
-		
+
 		// Decode time
-		long rawTime = Long.parseUnsignedLong(sent.substring(7, 7 + 6));
-		long rawDate = Long.parseUnsignedLong(sent.substring(57, 57 + 6));
+		long rawTime = Long.parseUnsignedLong(fields[1]);
+		long rawDate = Long.parseUnsignedLong(fields[14]);
 		Calendar time = Calendar.getInstance();
-		time.set(
-			(int)(2000 + rawDate % 100), // Year
-			(int)((rawDate / 100) % 100) - 1, // Month
-			(int)(rawDate / 10000), // Day
-			
-			(int)(rawTime / 10000), // Hour
-			(int)((rawTime / 100) % 100), // Minute
-			(int)(rawTime % 100) // second
+		time.set((int) (2000 + rawDate % 100), // Year
+				(int) ((rawDate / 100) % 100) - 1, // Month
+				(int) (rawDate / 10000), // Day
+
+				(int) (rawTime / 10000), // Hour
+				(int) ((rawTime / 100) % 100), // Minute
+				(int) (rawTime % 100) // second
 		);
-		
+
 		// Decode latitude
-		long rawLat1 = Long.parseUnsignedLong(sent.substring(20, 20 + 4));
-		long rawLat2 = Long.parseUnsignedLong(sent.substring(25, 25 + 4));
-		int latSgn = sent.charAt(30)=='S'?-1:1;
+		long rawLat1 = Long.parseUnsignedLong(fields[4]);
+		long rawLat2 = Long.parseUnsignedLong(fields[5]);
+		int latSgn = fields[6].equals("S") ? -1 : 1;
 		long latDeg = rawLat1 / 100;
 		long latMin = rawLat1 % 100;
 		long latMinDec = rawLat2;
-		double lat = latSgn * (latDeg + (double)latMin / 60 + (double)latMinDec / 600000);
-		
+		double lat = latSgn * (latDeg + (double) latMin / 60 + (double) latMinDec / 600000);
+
 		// Decode longitude
-		long rawLon1 = Long.parseUnsignedLong(sent.substring(32, 32 + 5));
-		long rawLon2 = Long.parseUnsignedLong(sent.substring(38, 38 + 4));
-		int lonSgn = sent.charAt(43)=='W'?-1:1;
+		long rawLon1 = Long.parseUnsignedLong(fields[7]);
+		long rawLon2 = Long.parseUnsignedLong(fields[8]);
+		int lonSgn = fields[9].equals("W") ? -1 : 1;
 		long lonDeg = rawLon1 / 100;
 		long lonMin = rawLon1 % 100;
 		long lonMinDec = rawLon2;
-		double lon = lonSgn * (lonDeg + (double)lonMin / 60 + (double)lonMinDec / 600000);
-			
-		if(gpsReadingListener != null) {
+		double lon = lonSgn * (lonDeg + (double) lonMin / 60 + (double) lonMinDec / 600000);
+
+		if (gpsReadingListener != null) {
 			gpsReadingListener.readGPS(lon, lat, time.getTime());
 		} else {
 			System.out.println("GPS: " + sent);
