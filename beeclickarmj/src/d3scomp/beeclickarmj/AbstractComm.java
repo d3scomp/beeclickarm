@@ -2,7 +2,6 @@ package d3scomp.beeclickarmj;
 
 import java.nio.ByteBuffer;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BrokenBarrierException;
@@ -422,7 +421,7 @@ public abstract class AbstractComm implements Comm {
 		
 		// Decode time
 		long rawTime = Long.parseUnsignedLong(sent.substring(7, 7 + 6));
-		long rawDate = Long.parseUnsignedLong(sent.substring(56, 56 + 6));
+		long rawDate = Long.parseUnsignedLong(sent.substring(57, 57 + 6));
 		Calendar time = Calendar.getInstance();
 		time.set(
 			(int)(2000 + rawDate % 100), // Year
