@@ -159,7 +159,7 @@ int main(void)
 	delayTimer.setPriority(1,1);
 	uartGPS.setPriority(1,2);
 	mrf.setRFPriority(2,0);
-	NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), 2, 1));
+	NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), 0, 1)); // Orig: 2, 1
 	infoButton.setPriority(2,1);
 	msgHandler.setPriority(2,2);
 
