@@ -1,6 +1,7 @@
 package d3scomp.beeclickarmj;
 
 public class CommException extends Exception {
+	private static final long serialVersionUID = 1L;
 
 	public CommException() {
 	}
