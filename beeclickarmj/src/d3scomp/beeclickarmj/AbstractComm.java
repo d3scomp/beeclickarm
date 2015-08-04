@@ -330,7 +330,7 @@ public abstract class AbstractComm implements Comm {
 	}
 
 	private void rxHandle(TOHMsg msg) {
-		if (msg.type == TOHMsg.Type.PACKET_SENT) {
+		if (msg.type == TOHMsg.Type.PACKET_SENT) { 
 			TOHMsg.PacketSent tmsg = (TOHMsg.PacketSent) msg;
 
 			TXPacket pkt;
@@ -338,6 +338,12 @@ public abstract class AbstractComm implements Comm {
 			synchronized (txPackets) {
 				pkt = txPackets.remove(tmsg.seq);
 				txPackets.notifyAll();
+			}
+			
+			// TODO: Remove this dirty fix
+			if(pkt == null) {
+				System.err.println("PACKET SENT CONFIRMATION RECEIVED, BUT NO PACKET WAITING IN THE QUEUE !!!!");
+				return;
 			}
 
 			synchronized (pkt) {
