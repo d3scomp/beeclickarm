@@ -35,28 +35,10 @@
 							<option id="org.eclipse.cdt.cross.arm.gnu.sourcery.windows.option.addtools.printsize.1090068215" name="Print Size" superClass="org.eclipse.cdt.cross.arm.gnu.sourcery.windows.option.addtools.printsize"/>
 							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.GNU_ELF" id="org.eclipse.cdt.cross.arm.gnu.sourcery.windows.platform.base.863771470" isAbstract="false" name="Windows Platform" osList="win32"/>
 							<builder command="make" id="org.eclipse.cdt.cross.arm.gnu.sourcery.windows.builder.base.449122061" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="ARM Sourcery Windows GNU Make builder"/>
-							<tool id="org.eclipse.cdt.cross.arm.gnu.sourcery.windows.assembler.base.1404959594" name="ARM Sourcery Windows GCC Assembler">
-								<inputType id="org.eclipse.cdt.cross.arm.gnu.sourcery.windows.assembler.base.input.580158860"/>
-							</tool>
-							<tool id="org.eclipse.cdt.cross.arm.gnu.sourcery.windows.c.compiler.base.1619630" name="ARM Sourcery Windows GCC C Compiler">
-								<inputType id="org.eclipse.cdt.cross.arm.gnu.sourcery.windows.c.compiler.base.input.319821660"/>
-							</tool>
-							<tool id="org.eclipse.cdt.cross.arm.gnu.sourcery.windows.cpp.compiler.base.148318588" name="ARM Sourcery Windows GCC C++ Compiler">
-								<option id="org.eclipse.cdt.cross.arm.gnu.cpp.compiler.option.preprocessor.def.1074316084" name="Defined symbols (-D)" superClass="org.eclipse.cdt.cross.arm.gnu.cpp.compiler.option.preprocessor.def" valueType="definedSymbols">
-									<listOptionValue builtIn="false" value="__GXX_EXPERIMENTAL_CXX0X__=1"/>
-								</option>
-								<inputType id="org.eclipse.cdt.cross.arm.gnu.sourcery.windows.cpp.compiler.base.input.1236450488"/>
-							</tool>
-							<tool id="org.eclipse.cdt.cross.arm.gnu.sourcery.windows.c.linker.base.1847137777" name="ARM Sourcery Windows GCC C Linker"/>
-							<tool id="org.eclipse.cdt.cross.arm.gnu.sourcery.windows.cpp.linker.base.980483538" name="ARM Sourcery Windows GCC C++ Linker"/>
-							<tool id="org.eclipse.cdt.cross.arm.gnu.sourcery.windows.archiver.base.1476052426" name="ARM Sourcery Windows GCC Archiver"/>
-							<tool id="org.eclipse.cdt.cross.arm.gnu.sourcery.windows.createflash.base.1187252114" name="ARM Sourcery Windows GNU Create Flash Image"/>
-							<tool id="org.eclipse.cdt.cross.arm.gnu.sourcery.windows.createlisting.base.1154256324" name="ARM Sourcery Windows GNU Create Listing"/>
-							<tool id="org.eclipse.cdt.cross.arm.gnu.sourcery.windows.printsize.base.106422622" name="ARM Sourcery Windows GNU Print Size"/>
 						</toolChain>
 					</folderInfo>
 					<fileInfo id="org.eclipse.cdt.cross.arm.gnu.sourcery.windows.toolchain.base.150869539.20868166" name="MRF24J40.cpp" rcbsApplicability="disable" resourcePath="src/MRF24J40.cpp" toolsToInvoke="org.eclipse.cdt.cross.arm.gnu.sourcery.windows.cpp.compiler.base.148318588.932998230">
-						<tool id="org.eclipse.cdt.cross.arm.gnu.sourcery.windows.cpp.compiler.base.148318588.932998230" name="ARM Sourcery Windows GCC C++ Compiler" superClass="org.eclipse.cdt.cross.arm.gnu.sourcery.windows.cpp.compiler.base.148318588">
+						<tool id="org.eclipse.cdt.cross.arm.gnu.sourcery.windows.cpp.compiler.base.148318588.932998230" name="ARM Sourcery Windows GCC C++ Compiler">
 							<inputType id="org.eclipse.cdt.cross.arm.gnu.sourcery.windows.cpp.compiler.base.148318588.932998230.1502274631"/>
 						</tool>
 					</fileInfo>
